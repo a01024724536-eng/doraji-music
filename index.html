@@ -1,0 +1,1677 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>나만의 도라지타령 만들기</title>
+<style>
+:root{
+  --hanji:#f6eedb; --hanji2:#efe3c6; --paper:#fffaf0; --ink:#2e2723; --sub:#6a5d50;
+  --red:#a8322a; --teal:#2f6b5e; --navy:#26406b; --gold:#c9962e; --pink:#b8506f; --green:#5d7f3a;
+  --blank:#fbe08a; --filled:#d7e7f2; --soft:#d6c7a8; --line:#6b5a45;
+  --serif:"Noto Serif CJK KR","Noto Serif KR","Source Han Serif K","AppleMyungjo","Batang","Songti SC",serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{min-height:100vh;color:var(--ink);font:18px/1.45 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR","Noto Sans CJK KR",sans-serif;
+  background-color:var(--hanji);
+  background-image:
+    radial-gradient(rgba(140,110,70,.07) 1px,transparent 1.5px),
+    radial-gradient(rgba(140,110,70,.05) 1px,transparent 1.5px),
+    linear-gradient(180deg,#f3e9d2 0%,#f8f1df 55%,#efe3c6 100%);
+  background-size:7px 7px,13px 13px,100% 100%;background-position:0 0,3px 5px,0 0;-webkit-text-size-adjust:100%}
+#scene{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+#scene svg{position:absolute;left:0;bottom:0;width:100%;height:52vh;min-height:280px}
+.hj{font-family:var(--serif);font-weight:800}
+.hidden{display:none !important}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+
+/* 버튼: 옻칠한 나무 느낌 */
+button{font:inherit;font-weight:800;min-height:48px;padding:8px 16px;border-radius:10px;border:2px solid var(--ink);background:var(--paper);color:var(--ink);
+  box-shadow:0 3px 0 var(--ink);cursor:pointer;touch-action:manipulation;transition:transform .05s,box-shadow .05s;margin-bottom:3px}
+button:active:not(:disabled){transform:translateY(3px);box-shadow:0 0 0 var(--ink)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:4px solid var(--gold);outline-offset:2px}
+.b-red{background:var(--red);color:#fff8ec} .b-teal{background:var(--teal);color:#fff8ec} .b-navy{background:var(--navy);color:#fff8ec}
+.b-gold{background:var(--gold);color:#2e2723} .b-pink{background:var(--pink);color:#fff8ec} .b-green{background:var(--green);color:#fff8ec}
+.b-line{background:var(--paper);color:var(--red);border-color:var(--red);box-shadow:0 3px 0 var(--red)}
+button.playing{background:var(--ink);color:#fff8ec}
+input,textarea{font:inherit;padding:10px 12px;border:2px solid var(--ink);border-radius:8px;background:#fffdf6;width:100%}
+
+/* 한지 창틀 패널 */
+.panel{background:var(--paper);border:3px solid var(--ink);border-radius:8px;padding:18px 22px;margin-bottom:16px;position:relative;
+  box-shadow:inset 0 0 0 5px var(--paper),inset 0 0 0 7px rgba(168,50,42,.55),0 5px 0 rgba(46,39,35,.25)}
+.panel::before,.panel::after{content:"";position:absolute;width:14px;height:14px;border:3px solid var(--gold);background:var(--red)}
+.panel::before{left:-8px;top:-8px;transform:rotate(45deg)}
+.panel::after{right:-8px;top:-8px;transform:rotate(45deg)}
+.note{color:var(--sub);font-size:15px}
+
+/* 위쪽: 쪽빛 처마 + 단청 띠 */
+header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:8px 12px;
+  background:var(--navy);border-bottom:10px solid transparent;
+  border-image:repeating-linear-gradient(90deg,#2f6b5e 0 14px,#c9962e 14px 18px,#a8322a 18px 32px,#f6eedb 32px 36px,#26406b 36px 50px,#f6eedb 50px 54px) 10}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{min-height:46px;padding:4px 12px;font-size:16px;background:transparent;color:#f6eedb;border-color:#f6eedb;box-shadow:0 3px 0 rgba(0,0,0,.4)}
+.tabs button[aria-current="page"]{background:var(--gold);color:var(--ink);border-color:var(--gold)}
+.tabs button[aria-current="page"]::before{content:"◆ "}
+.badges{display:flex;gap:6px}
+.badge{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:58px;padding:2px 6px;border:2px solid var(--gold);border-radius:8px;background:#fff8ec;font-size:12px;font-weight:800;line-height:1.15}
+.badge .em{font-size:22px}
+.badge.off{background:rgba(255,255,255,.15);color:#c9c3b6;border-color:#8a8fa0}
+.badge.off .em{filter:grayscale(1);opacity:.45}
+
+main{max-width:1180px;margin:0 auto;padding:16px}
+section.screen{display:none}
+section.screen.on{display:block}
+/* 현판(나무 간판) 제목 */
+.hyeonpan{display:inline-flex;align-items:center;gap:10px;background:linear-gradient(#4a352a,#3a291f);color:#f3d58a;border:3px solid var(--gold);border-radius:6px;
+  padding:4px 18px;font-family:var(--serif);font-weight:900;box-shadow:0 0 0 3px #3a291f,0 5px 0 3px rgba(0,0,0,.25);margin:4px 0 14px 4px}
+.hyeonpan h2{margin:0;font-size:26px;letter-spacing:2px}
+.hyeonpan svg{flex:0 0 auto}
+
+/* 첫 화면 */
+.hero{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;margin:4px 0 18px}
+.hero .hyeonpan h1{margin:0;font-size:36px;letter-spacing:3px}
+.bubble{position:relative;background:var(--paper);border:2px solid var(--ink);border-radius:14px;padding:10px 16px;font-weight:700}
+.hero .bubble{font-size:19px;margin-left:6px}
+.hub{display:grid;grid-template-columns:repeat(2,minmax(260px,1fr));gap:18px;max-width:920px;margin:0 auto}
+.hubcard{display:flex;align-items:center;gap:14px;text-align:left;padding:14px 16px 14px 12px;border-radius:10px;min-height:126px;background:var(--paper);
+  border:3px solid var(--ink);box-shadow:inset 10px 0 0 var(--c),0 5px 0 var(--ink);padding-left:24px}
+.hubcard .ico{flex:0 0 76px;height:76px;border-radius:50%;background:var(--hanji2);border:2px solid var(--ink);display:flex;align-items:center;justify-content:center}
+.hubcard .t{font-size:25px;display:block;font-family:var(--serif);font-weight:900}
+.hubcard .d{font-size:16px;font-weight:600;display:block;color:var(--sub)}
+.hubcard .st{display:inline-block;margin-top:6px;background:var(--c);color:#fff8ec;border-radius:20px;padding:1px 12px;font-size:15px}
+.hubcard .num{display:inline-flex;width:30px;height:30px;border-radius:50%;background:var(--c);color:#fff8ec;align-items:center;justify-content:center;font-size:17px;margin-right:6px;font-family:inherit}
+.homefoot{text-align:center;margin-top:18px;font-weight:800;font-size:19px}
+
+/* 퀴즈 */
+.quiz{max-width:800px;margin:0 auto}
+.qtop{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.lv{font-family:var(--serif);font-weight:900;font-size:20px;background:var(--red);color:#fff8ec;border-radius:6px;padding:2px 12px}
+.qdots{display:flex;gap:8px}
+.qdot{width:40px;height:40px;border-radius:50%;border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font-weight:900;background:#fff}
+.qdot.now{background:var(--gold)}
+.qdot.ok{background:#cfe8c8} .qdot.no{background:#f4cfcb}
+.qtext{font-size:25px;font-weight:800;margin:14px 0 10px}
+.qbig{font-size:86px;text-align:center;line-height:1.1;margin:0 0 10px}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.choices button{min-height:68px;font-size:23px}
+.choices.hanja button{font-family:var(--serif);font-size:38px}
+.choices button.right{background:#cfe8c8}
+.choices button.right::after{content:"  ⭕";font-family:sans-serif;font-size:22px}
+.choices button.wrong{background:#f4cfcb}
+.choices button.wrong::after{content:"  ❌";font-family:sans-serif;font-size:22px}
+.feedback{min-height:60px;font-size:21px;font-weight:800;margin:12px 0 6px}
+.why{margin-top:8px;background:#fbf3df;border:2px solid var(--gold);border-radius:10px;padding:10px 14px;font-size:18px;font-weight:600;line-height:1.55}
+.why .whyhead{font-weight:900;color:var(--red);margin-bottom:2px}
+.why b{font-weight:900}
+.ladderline{display:flex;align-items:flex-end;justify-content:center;gap:2px;margin:10px 0 2px;flex-wrap:nowrap}
+.rung{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-width:46px;padding:2px 4px;border:2px solid #b9a888;border-radius:6px 6px 2px 2px;background:#fffaf0;font-size:13px;line-height:1.1}
+.rung .hj{font-size:20px}
+.rung em{position:absolute;top:-22px;white-space:nowrap;font-style:normal;font-size:12px;font-weight:900}
+.rung.ans{border-color:#2d6a33;background:#d7ecd2}
+.rung.pick{border-color:var(--red);background:#f6d6d1;border-style:dashed}
+.rung.base{border-color:var(--navy);background:#dfe6f2}
+.rarrow{color:#b9a888;font-weight:900;align-self:center}
+.listen{display:flex;gap:14px;justify-content:center;margin-bottom:12px;flex-wrap:wrap}
+.listen button{min-height:64px;font-size:22px}
+
+/* 가락 만들기 */
+.rules{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.rule{background:var(--paper);border:2px solid var(--ink);border-radius:30px;padding:3px 14px;font-weight:800;font-size:17px}
+.rule b{color:var(--red)}
+.makegrid{display:grid;gap:14px 18px;align-items:start;grid-template-columns:max-content minmax(300px,1fr);grid-template-areas:"editor bubble" "editor side";grid-template-rows:auto 1fr}
+.editorbox{grid-area:editor;margin:0}
+.bubblebox{grid-area:bubble;display:flex;gap:10px;align-items:flex-start}
+.bubblebox .mascot{flex:0 0 70px}
+.bubblebox .bubble{flex:1;min-height:84px;font-size:18px}
+.bubblebox .bubble.warn{border-color:var(--red);background:#fbeeea}
+.side{grid-area:side;display:flex;flex-direction:column;gap:8px}
+.status{font-weight:900;font-size:18px;background:var(--paper);border:2px solid var(--ink);border-radius:8px;padding:4px 12px;display:inline-block}
+.btnrow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btnrow3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.btnrow3 button{font-size:16px;padding:6px 6px}
+.done-btn{font-size:24px;min-height:60px;font-family:var(--serif)}
+.readhint{font-weight:800;margin:0 0 6px;font-size:16px}
+.stairs-title{font-weight:900;margin:12px 0 4px;font-size:17px}
+.stairwrap{display:inline-block}
+.stairs{display:flex;align-items:flex-end;gap:6px}
+.stairs button{width:66px;padding:4px 2px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;border-radius:8px 8px 4px 4px}
+.stairs button .hj{font-size:29px;line-height:1.1}
+.stairs button .hg{font-size:14px}
+.stairs-ends{display:flex;justify-content:space-between;gap:40px;font-size:14px;font-weight:800;color:var(--sub);margin-top:2px}
+
+/* 정간보 */
+.score{display:inline-flex;flex-direction:row-reverse;border:4px solid var(--line);background:var(--paper);border-radius:3px}
+.col{display:flex;flex-direction:column;border-right:2px solid var(--line)}
+.col:first-child{border-right:none}
+.colhead{height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;background:#ecdcb8;border-bottom:2px solid var(--line);font-family:var(--serif)}
+.cell{width:64px;height:50px;border-bottom:1px solid var(--soft);display:flex;flex-direction:column;position:relative;background:var(--paper)}
+.cell.jd-end{border-bottom:3px solid var(--line)}
+.cell:last-child{border-bottom:none}
+.grp{display:flex;align-items:center;justify-content:center;gap:2px;line-height:1;min-height:0;flex-basis:0}
+.grp .hj{font-size:17px}
+.grp .hg{font-size:10px;color:#4d463c;font-weight:700}
+.grp .dash{font-size:15px;color:#555}
+.cell.blank{background:var(--blank);cursor:pointer}
+.cell.blank.filled{background:var(--filled)}
+.cell .box{font-size:22px;line-height:1;text-align:center;margin-top:6px}
+.cell .boxlab{font-size:11px;text-align:center;font-weight:800}
+.cell .num{position:absolute;left:3px;top:1px;font-size:10px;font-weight:900;color:#444}
+.cell .rel{position:absolute;right:3px;top:0;font-size:14px;font-weight:900}
+.cell.bad{box-shadow:inset 0 0 0 3px var(--red)}
+.cell.bad .rel{color:var(--red)}
+.cell.sel{box-shadow:inset 0 0 0 4px var(--ink)}
+.cell.sel.bad{box-shadow:inset 0 0 0 4px var(--ink),inset 0 0 0 8px var(--red)}
+.cell.sel::after{content:"선택";position:absolute;right:3px;bottom:2px;font-size:10px;font-weight:900;background:var(--ink);color:#fff;padding:0 4px;border-radius:5px}
+.cell.playing{outline:4px solid var(--red);outline-offset:-4px;z-index:1}
+.grp.now{background:#f6c9a8}
+.grp.now::before{content:"♪";font-size:12px;font-weight:900}
+@keyframes blink{0%,100%{filter:none}50%{filter:brightness(.6)}}
+.cell.blink{animation:blink .4s 4}
+.score.big .cell{width:112px;height:86px}
+.score.big .grp .hj{font-size:29px}
+.score.big .grp .hg{font-size:15px}
+.score.big .grp .dash{font-size:24px}
+.score.big .cell .box{font-size:32px;margin-top:10px}
+.score.big .cell .boxlab{font-size:15px}
+.score.big .cell .num{font-size:14px}
+.score.big .cell .rel{font-size:22px}
+.score.big .cell.sel::after{font-size:13px}
+
+/* 저장·갤러리 */
+.twocol{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px;align-items:start}
+label.f{display:block;font-weight:800;margin:10px 0 4px}
+.err{color:var(--red);font-weight:800;min-height:26px}
+.okmsg{color:#2d6a33;font-weight:800;min-height:26px}
+.linkbox{word-break:break-all;font-size:14px}
+.wtitle{font-size:28px;font-weight:900;font-family:var(--serif)}
+.chip{display:inline-block;background:#f3e3b5;border:2px solid var(--ink);border-radius:20px;padding:0 10px;font-weight:800;font-size:15px}
+.gstatus{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-weight:800}
+.ggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;margin-top:6px}
+.gcard{background:var(--paper);border:3px solid var(--ink);border-radius:8px;padding:12px 14px 10px;position:relative;box-shadow:inset 0 6px 0 var(--c),0 4px 0 rgba(46,39,35,.25)}
+.gcard .t{font-size:22px;font-weight:900;font-family:var(--serif);margin-top:4px}
+.gcard .f{font-size:16px;min-height:44px}
+.gcard .notes{font-family:var(--serif);font-weight:800;font-size:21px;letter-spacing:1px;margin:4px 0}
+.gcard .meta{font-size:13px;color:var(--sub)}
+.gcard .row{gap:6px;margin-top:6px;flex-wrap:nowrap}
+.gcard button{min-height:44px;padding:4px 9px;font-size:15px;white-space:nowrap}
+.gcard.mine{outline:4px solid var(--gold)}
+.gcard.picked{box-shadow:inset 0 6px 0 var(--c),0 0 0 5px var(--red)}
+.heart.on{background:#f4cfcb;color:var(--red);border-color:var(--red)}
+.empty{text-align:center;padding:30px 10px;font-size:20px;font-weight:700;color:var(--sub)}
+details.tpaste{margin-top:12px}
+details.tpaste summary{cursor:pointer;font-weight:800;min-height:44px;display:flex;align-items:center}
+.btnlink{display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:8px 18px;border-radius:10px;border:2px solid var(--ink);box-shadow:0 3px 0 var(--ink);font-weight:800;text-decoration:none;font-size:20px}
+.btnlink:active{transform:translateY(3px);box-shadow:none}
+.padletbox{background:#fbf0e6;border:2px dashed var(--pink);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.padletbox ol{margin:6px 0 10px;padding-left:24px;font-size:17px}
+.padletbox li{margin:2px 0}
+.evalcard label{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:700;min-height:48px}
+.evalcard input{width:28px;height:28px}
+
+/* 교사 */
+.setting{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+
+/* 창 */
+.modal-bg{position:fixed;inset:0;background:rgba(30,24,20,.55);display:flex;align-items:center;justify-content:center;z-index:50;padding:12px}
+.modal{background:var(--paper);border:3px solid var(--ink);border-radius:8px;box-shadow:inset 0 0 0 5px var(--paper),inset 0 0 0 7px rgba(168,50,42,.55),0 6px 0 rgba(0,0,0,.3);
+  padding:22px 24px;max-width:440px;width:100%;text-align:center;font-size:20px;max-height:94vh;overflow:auto}
+.modal.wide{max-width:760px}
+.modal .row{justify-content:center;margin-top:14px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff8ec;padding:12px 20px;border-radius:10px;border:2px solid var(--gold);font-size:19px;font-weight:800;z-index:60;pointer-events:none;max-width:90%}
+.celebrate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:70;transition:opacity .5s}
+.celebrate .panel{text-align:center;font-size:26px;font-weight:900;font-family:var(--serif)}
+.banner{background:#fbeeea;color:var(--red);border:3px solid var(--red);border-radius:8px;padding:12px 16px;font-weight:800;margin:12px}
+footer{padding:10px 16px 24px;color:#3d3a33;font-size:13px;text-align:center;font-weight:600}
+footer a{color:#3d3a33}
+
+#printArea{display:none}
+@media print{
+  body.printing > *:not(#printArea){display:none !important}
+  body.printing #printArea{display:block}
+  body.printing{background:#fff}
+  #printArea .score,#printArea .cell{background:#fff !important;box-shadow:none !important}
+}
+@media (max-width:980px){
+  .makegrid{grid-template-columns:1fr;grid-template-areas:"bubble" "editor" "side";grid-template-rows:auto}
+  .editorbox{display:flex;flex-direction:column;align-items:center}
+}
+@media (max-width:640px){
+  .hub{grid-template-columns:1fr}
+  .hero .hyeonpan h1{font-size:26px}
+  .score.big .cell{width:80px;height:76px}
+  .score.big .grp .hj{font-size:24px}
+  .stairs button{width:44px}
+  .stairs button .hj{font-size:22px}
+  .tabs button{font-size:14px;padding:4px 8px}
+}
+</style>
+</head>
+<body>
+<div id="scene" aria-hidden="true">
+  <svg viewBox="0 0 1200 520" preserveAspectRatio="xMidYMax slice">
+    <defs>
+      <linearGradient id="mtn1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8d9aa3" stop-opacity=".55"/><stop offset="1" stop-color="#8d9aa3" stop-opacity="0"/></linearGradient>
+      <linearGradient id="mtn2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5e7270" stop-opacity=".7"/><stop offset="1" stop-color="#5e7270" stop-opacity=".05"/></linearGradient>
+      <linearGradient id="mtn3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3f4f4a" stop-opacity=".85"/><stop offset="1" stop-color="#3f4f4a" stop-opacity=".3"/></linearGradient>
+    </defs>
+    <circle cx="960" cy="150" r="58" fill="#c8483a" opacity=".85"/>
+    <g fill="none" stroke="#a89c86" stroke-width="3" stroke-linecap="round" opacity=".7">
+      <path d="M150 120 q20-22 44-8 q10-22 36-10 q22-6 24 14 q-14 8-30 2"/>
+      <path d="M620 80 q18-20 40-8 q10-20 34-8 q20-4 22 14 q-14 8-28 2"/>
+    </g>
+    <path d="M0 300 L90 230 L160 270 L260 180 L360 260 L450 215 L560 280 L680 190 L790 255 L900 210 L1010 270 L1110 220 L1200 250 V520 H0z" fill="url(#mtn1)"/>
+    <path d="M0 360 Q80 300 150 330 Q240 260 330 320 Q420 280 500 340 Q600 270 700 330 Q800 290 880 340 Q980 280 1080 330 Q1150 300 1200 320 V520 H0z" fill="url(#mtn2)"/>
+    <path d="M0 430 Q120 370 240 410 Q360 360 480 420 Q620 380 760 425 Q900 375 1040 420 Q1130 395 1200 410 V520 H0z" fill="url(#mtn3)"/>
+    <g stroke="#2e2723" stroke-linecap="round" fill="none" opacity=".75">
+      <path d="M1200 40 Q1100 60 1040 110" stroke-width="7"/>
+      <path d="M1120 58 Q1090 30 1060 34" stroke-width="4"/>
+    </g>
+    <g fill="#3f5a3a" opacity=".75">
+      <ellipse cx="1050" cy="105" rx="34" ry="12"/><ellipse cx="1095" cy="70" rx="30" ry="10"/><ellipse cx="1060" cy="38" rx="26" ry="9"/>
+    </g>
+    <g opacity=".9">
+      <g transform="translate(70,470)"><path d="M0 0 V30" stroke="#3f5a3a" stroke-width="3"/><g fill="#9b7fd0" stroke="#4a3b5c" stroke-width="1.5"><circle cx="0" cy="-7" r="6"/><circle cx="7" cy="-1" r="6"/><circle cx="4" cy="7" r="6"/><circle cx="-4" cy="7" r="6"/><circle cx="-7" cy="-1" r="6"/></g><circle r="3" fill="#fff3c4"/></g>
+      <g transform="translate(230,488)"><path d="M0 0 V30" stroke="#3f5a3a" stroke-width="3"/><g fill="#fff" stroke="#4a3b5c" stroke-width="1.5"><circle cx="0" cy="-7" r="6"/><circle cx="7" cy="-1" r="6"/><circle cx="4" cy="7" r="6"/><circle cx="-4" cy="7" r="6"/><circle cx="-7" cy="-1" r="6"/></g><circle r="3" fill="#fff3c4"/></g>
+      <g transform="translate(1130,480)"><path d="M0 0 V30" stroke="#3f5a3a" stroke-width="3"/><g fill="#9b7fd0" stroke="#4a3b5c" stroke-width="1.5"><circle cx="0" cy="-7" r="6"/><circle cx="7" cy="-1" r="6"/><circle cx="4" cy="7" r="6"/><circle cx="-4" cy="7" r="6"/><circle cx="-7" cy="-1" r="6"/></g><circle r="3" fill="#fff3c4"/></g>
+    </g>
+  </svg>
+</div>
+<noscript><div class="banner">이 앱은 자바스크립트가 켜져 있어야 작동해요.</div></noscript>
+<div id="dataError" class="banner hidden"></div>
+
+<header>
+  <nav class="tabs" aria-label="활동 메뉴">
+    <button data-go="home">🏠 처음</button>
+    <button data-go="quiz">율명 퀴즈</button>
+    <button data-go="make">가락 만들기</button>
+    <button data-go="share">저장·올리기</button>
+    <button data-go="gallery">우리 반 갤러리</button>
+  </nav>
+  <div class="badges" aria-label="받은 메달">
+    <div class="badge off" id="m0"><span class="em">🥉</span><span class="lb">아직</span></div>
+    <div class="badge off" id="m1"><span class="em">🥈</span><span class="lb">아직</span></div>
+    <div class="badge off" id="m2"><span class="em">🥇</span><span class="lb">아직</span></div>
+  </div>
+</header>
+
+<main>
+  <!-- 첫 화면 -->
+  <section class="screen" id="s-home">
+    <div class="hero">
+      <div data-mascot="110"></div>
+      <div>
+        <div class="hyeonpan"><h1>나만의 도라지타령</h1></div>
+        <div class="bubble">도라지타령의 마지막 네 장단을 내 마음대로 바꿔 봐요! 무엇부터 해 볼까요?</div>
+      </div>
+    </div>
+    <div class="hub">
+      <button class="hubcard" data-go="quiz" style="--c:var(--red)">
+        <span class="ico" data-icon="quiz"></span>
+        <span><span class="t"><span class="num">1</span>율명 퀴즈</span><span class="d">율명을 읽고, 높은 소리를 찾아요. 단계가 계속 올라가요!</span><span class="st" id="stQuiz"></span></span>
+      </button>
+      <button class="hubcard" data-go="make" style="--c:var(--teal)">
+        <span class="ico" data-icon="make"></span>
+        <span><span class="t"><span class="num">2</span>가락 만들기</span><span class="d">빈칸에 율명을 넣어 내 가락을 만들어요</span><span class="st" id="stMake"></span></span>
+      </button>
+      <button class="hubcard" data-go="share" style="--c:var(--gold)">
+        <span class="ico" data-icon="share"></span>
+        <span><span class="t"><span class="num">3</span>저장하고 올리기</span><span class="d">제목과 느낌을 쓰고 우리 반 갤러리에 올려요</span><span class="st" id="stShare"></span></span>
+      </button>
+      <button class="hubcard" data-go="gallery" style="--c:var(--navy)">
+        <span class="ico" data-icon="gallery"></span>
+        <span><span class="t"><span class="num">4</span>우리 반 갤러리</span><span class="d">친구들이 만든 가락을 한 화면에서 듣고 칭찬해요</span><span class="st" id="stGallery"></span></span>
+      </button>
+    </div>
+    <p class="homefoot">🔊 이어폰을 끼고 시작해요</p>
+    <div style="text-align:center"><button class="b-line" id="btnFullReset">🔄 처음으로 다시하기</button></div>
+  </section>
+
+  <!-- 퀴즈 -->
+  <section class="screen" id="s-quiz">
+    <div class="hyeonpan"><span data-icon="quiz" data-size="34"></span><h2>율명 퀴즈</h2></div>
+    <div class="panel quiz"><div id="quizBody"></div></div>
+  </section>
+
+  <!-- 가락 만들기 -->
+  <section class="screen" id="s-make">
+    <div class="hyeonpan"><span data-icon="make" data-size="34"></span><h2>가락 만들기</h2></div>
+    <div class="rules">
+      <span class="rule"><b>규칙 1</b> 율명 7개만 써요</span>
+      <span class="rule"><b>규칙 2</b> 한 칸에 율명 하나</span>
+      <span class="rule"><b>규칙 3</b> 앞 음과 같은 음이나 바로 위·아래 음으로만 움직여요</span>
+      <span class="rule hidden" id="rule4"><b>규칙 4</b> 마지막 음은 仲(중)이나 無(무)로 끝내요</span>
+    </div>
+    <div class="makegrid">
+      <div class="bubblebox">
+        <div class="mascot" data-mascot="70"></div>
+        <div class="bubble" id="makeMsg" aria-live="polite"></div>
+      </div>
+      <div class="panel editorbox">
+        <p class="readhint">📖 오른쪽 장단부터, 위에서 아래로 읽어요 ←</p>
+        <div id="makeScore"></div>
+        <div class="stairs-title">🪜 음 계단: 노란 빈칸(□)을 누르고, 넣을 율명을 눌러요</div>
+        <div class="stairwrap"><div class="stairs" id="stairs"></div>
+        <div class="stairs-ends"><span>◀ 낮은 음</span><span>높은 음 ▶</span></div></div>
+      </div>
+      <div class="side">
+        <div><span class="status" id="makeStatus"></span></div>
+        <div class="btnrow">
+          <button class="b-navy" id="btnPlayOrig" data-kind="orig">▶ 원곡 듣기</button>
+          <button class="b-teal" id="btnPlayMine" data-kind="mine">▶ 내 가락 듣기</button>
+        </div>
+        <div class="btnrow3">
+          <button id="btnDrum">🥁 장구: 켜짐</button>
+          <button id="btnTempo">🐢 느리게</button>
+          <button id="btnFull">📜 전체 악보</button>
+        </div>
+        <div class="btnrow3">
+          <button id="btnUndo">↩ 되돌리기</button>
+          <button id="btnClear">⌫ 칸 지우기</button>
+          <button class="b-line" id="btnReset">🧹 빈칸 비우기</button>
+        </div>
+        <button class="b-red done-btn" id="btnDone">✨ 완성!</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 저장하고 올리기 -->
+  <section class="screen" id="s-share">
+    <div class="hyeonpan"><span data-icon="share" data-size="34"></span><h2>저장하고 올리기</h2></div>
+    <div class="twocol">
+      <div class="panel">
+        <div class="wtitle" id="myTitle"></div>
+        <div id="myMeta" style="font-size:19px"></div>
+        <div id="myWarn" style="margin:6px 0"></div>
+        <div class="row" style="margin:8px 0">
+          <button class="b-teal" id="btnPlayMy" data-kind="my">▶ 내 가락 듣기</button>
+          <button class="b-navy" id="btnPlayMyOrig" data-kind="myorig">▶ 원곡 듣기</button>
+        </div>
+        <div id="myScore"></div>
+        <div class="row" style="margin-top:12px">
+          <button id="btnPrintBlank">🖨 빈 활동지 인쇄</button>
+          <button id="btnPrintMine">🖨 내 작품 인쇄</button>
+        </div>
+        <p class="note" id="printNote"></p>
+      </div>
+      <div class="panel">
+        <label class="f" for="inTitle" style="margin-top:0">✏️ 작품 제목 (꼭 써요, 20자까지)</label>
+        <input id="inTitle" maxlength="20" placeholder="예: 신나는 도라지" autocomplete="off">
+        <label class="f" for="inFeel">💬 느낌 한 줄 (꼭 써요, 40자까지)</label>
+        <p class="note" style="margin:0 0 4px">원곡과 비교해서 가락이 올라가나요, 내려가나요? 어떤 느낌이 드나요?</p>
+        <input id="inFeel" maxlength="40" placeholder="예: 끝이 올라가서 신나는 느낌이에요" autocomplete="off">
+        <label class="f" for="inNum">🔢 번호 (안 써도 돼요, 숫자 2자리까지)</label>
+        <input id="inNum" maxlength="2" inputmode="numeric" style="max-width:140px" autocomplete="off">
+        <p class="note">이름은 쓰지 않아요.</p>
+        <div class="err" id="shareErr" aria-live="polite"></div>
+        <button class="b-red" id="btnUpload" style="font-size:21px">🏮 우리 반 갤러리에 올리기</button>
+        <div class="okmsg" id="uploadMsg" aria-live="polite"></div>
+        <div id="linkArea" class="hidden" style="margin-top:8px">
+          <div class="padletbox" id="padletBox">
+            <b style="font-size:20px">📌 우리 반 패들렛에 내 작품 올리기</b>
+            <ol>
+              <li><b>[📌 링크 복사하고 패들렛 열기]</b>를 눌러요.</li>
+              <li>패들렛에서 <b>＋</b> 버튼을 눌러요.</li>
+              <li>제목에 <b>번호와 작품 제목</b>을 쓰고, 내용 칸을 길게 눌러 <b>붙여 넣기</b> 해요.</li>
+              <li><b>게시</b>를 누르면 끝!</li>
+            </ol>
+            <a class="btnlink b-pink" id="padletLink" href="#" target="_blank" rel="noopener">📌 링크 복사하고 패들렛 열기</a>
+          </div>
+          <label class="f" for="linkOut">내 작품 링크</label>
+          <textarea id="linkOut" class="linkbox" rows="3" readonly></textarea>
+          <div class="row" style="margin-top:8px"><button class="b-gold" id="btnCopy">📋 링크만 복사</button></div>
+          <div class="okmsg" id="copyMsg" aria-live="polite"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 우리 반 갤러리 -->
+  <section class="screen" id="s-gallery">
+    <div class="hyeonpan"><span data-icon="gallery" data-size="34"></span><h2>우리 반 갤러리</h2></div>
+    <div class="panel">
+      <div class="gstatus">
+        <span id="gMode" class="chip"></span>
+        <span id="gCount"></span>
+        <button class="b-gold" id="btnGRandom">🎲 무작위로 하나 듣기</button>
+        <button id="btnGStop">■ 멈춤</button>
+      </div>
+      <p class="note" id="gHelp" style="margin:8px 0 0"></p>
+      <div class="ggrid" id="gGrid"></div>
+      <details class="tpaste" id="tPasteBox">
+        <summary>🧑‍🏫 선생님: 학생 링크를 모아 갤러리에 붙여 넣기</summary>
+        <p class="note" style="margin:4px 0">학생들이 패들렛에 올린 링크를 한 줄에 하나씩 붙여 넣고 [갤러리에 추가]를 누르세요. 이 기기에 저장돼요.</p>
+        <p style="margin:4px 0"><a class="btnlink b-pink" id="padletLinkT" href="#" target="_blank" rel="noopener" style="font-size:16px;min-height:44px">📌 우리 반 패들렛 열기</a></p>
+        <textarea id="tInput" rows="4" placeholder="링크1&#10;링크2&#10;..."></textarea>
+        <div class="row" style="margin-top:8px">
+          <button class="b-navy" id="btnTAdd">갤러리에 추가</button>
+          <button class="b-line" id="btnTClear">이 기기 갤러리 비우기</button>
+        </div>
+        <div class="note" id="tAddMsg"></div>
+      </details>
+    </div>
+  </section>
+
+  <!-- 교사 설정 -->
+  <section class="screen" id="s-teacher">
+    <div class="hyeonpan"><h2>교사 설정</h2></div>
+    <div class="panel">
+      <div class="setting">기본 빠르기: <button id="tTempoSlow">느리게</button><button id="tTempoNormal">보통</button><span id="tTempoNow" class="note"></span></div>
+      <div class="setting">뒤 음과도 이어지게 (빈칸 다음 원곡 음과도 순차 진행): <button id="tNextRule"></button></div>
+      <div class="setting">마지막 음 규칙 (끝음은 仲·無, 지도서에 없는 선택 규칙): <button id="tEndRule"></button></div>
+      <div class="setting">이 기기의 학생 기록 지우기 (다음 반 수업 전): <button class="b-line" id="tWipe">기록 지우기</button></div>
+      <p class="note">학생 작품 모아 보기는 [우리 반 갤러리] 화면 아래쪽에 있어요.</p>
+      <div class="row" style="margin-top:12px"><button class="b-gold" data-go="home">학생 화면으로</button></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div id="sourceText"></div>
+  <div style="margin-top:6px"><a href="#teacher">교사 설정</a></div>
+</footer>
+<div id="printArea"></div>
+<div id="modalRoot"></div>
+
+<script>
+/* =========================================================
+   교사가 고칠 곳 (1) 기본 설정
+   ========================================================= */
+const CONFIG = {
+  OCTAVE_SHIFT: 0,                 // 전체 음높이를 옥타브 단위로 올리기(+1)·내리기(-1)
+  JEONGGAN_SEC: { slow: 1.2, normal: 0.9 }, // 한 정간(한 박) 길이(초)
+  JANGDAN_PER_COLUMN: 4,           // '전체 악보'에서 한 세로줄에 들어가는 장단 수
+  QUIZ_PASS: 4,                    // 퀴즈 한 단계(5문제)에서 통과에 필요한 정답 수
+  PADLET_URL: "https://padlet.com/a01024724536/padlet-s025llwwfwjucdofpnpt", // 우리 반 패들렛 주소 (비우면 버튼이 숨겨져요)
+  SOURCE_TEXT: "악보: [출판사명] 초등학교 음악 5~6 교과서 56쪽 「도라지타령」(경기 민요, 세마치장단) / 소리: 웹 브라우저로 직접 만든 소리"
+};
+
+/* 교사가 고칠 곳 (2) 율명과 음높이 (낮은 음 → 높은 음, 이 순서가 '음 계단')
+   황종 = E♭4 기준. 단소 실제 소리와 비교해 다르면 OCTAVE_SHIFT로 맞추세요. */
+const YUL = [
+  { h: "仲", k: "중",   f: 415.30 }, // A♭4
+  { h: "林", k: "임",   f: 466.16 }, // B♭4
+  { h: "無", k: "무",   f: 554.37 }, // D♭5
+  { h: "潢", k: "청황", f: 622.25 }, // E♭5
+  { h: "汰", k: "청태", f: 698.46 }, // F5
+  { h: "㳞", k: "청중", f: 830.61 }, // A♭5
+  { h: "淋", k: "청임", f: 932.33 }  // B♭5
+];
+
+/* 교사가 고칠 곳 (3) 원곡 정간보 (교과서 56쪽)
+   한 줄 = 한 장단, [ ] 하나 = 한 정간, 정간 안은 소박 3칸.
+   "-" = 앞 음을 이어서 길게, "△" = 쉼 */
+const ORIGINAL_SCORE = `
+1장단: [汰,-,-] [汰,-,-] [汰,-,-]
+2장단: [汰,-,-] [-,-,潢] [無,-,-]
+3장단: [㳞,-,-] [-,-,-] [淋,-,㳞]
+4장단: [汰,-,-] [-,-,潢] [無,-,-]
+5장단: [潢,-,汰] [汰,-,-] [-,-,-]
+6장단: [潢,-,汰] [潢,-,無] [林,仲,-]
+7장단: [林,-,-] [無,-,-] [-,-,林]
+8장단: [仲,-,-] [-,-,-] [△,-,-]
+9장단: [汰,-,-] [汰,-,-] [-,-,-]
+10장단: [汰,-,-] [-,-,潢] [無,-,-]
+11장단: [㳞,-,-] [-,-,-] [淋,-,㳞]
+12장단: [汰,-,-] [-,-,潢] [無,-,-]
+13장단: [潢,-,汰] [汰,-,-] [汰,-,-]
+14장단: [潢,-,汰] [潢,-,無] [林,仲,-]
+15장단: [林,-,-] [無,-,-] [-,-,林]
+16장단: [仲,-,-] [-,-,-] [△,-,-]
+17장단: [林,-,-] [林,-,無] [仲,-,-]
+18장단: [林,-,-] [林,-,無] [仲,-,-]
+19장단: [無,-,-] [無,-,-] [-,-,潢]
+20장단: [無,-,-] [-,-,-] [潢,-,-]
+21장단: [汰,-,-] [汰,-,-] [汰,-,-]
+22장단: [汰,-,-] [-,-,潢] [無,-,-]
+23장단: [㳞,-,㳞] [㳞,-,-] [淋,-,㳞]
+24장단: [汰,-,-] [-,-,潢] [無,-,-]
+25장단: [潢,-,汰] [汰,-,-] [汰,-,-]
+26장단: [潢,-,汰] [潢,-,無] [林,仲,-]
+27장단: [林,-,-] [無,-,-] [林,-,-]
+28장단: [仲,-,-] [-,-,-] [△,-,-]
+`;
+
+/* 교사가 고칠 곳 (4) 학생이 바꿀 부분 = 원곡의 마지막 장단들 (줄 수만큼 원곡 끝부분을 대신함)
+   [□] = 학생이 채울 빈칸 (한 정간에 율명 하나, 3소박 길이) */
+const STUDENT_PART = `
+25장단: [潢,-,汰] [□] [□]
+26장단: [潢,-,汰] [□] [□]
+27장단: [林,-,-] [□] [□]
+28장단: [仲,-,-] [□] [□]
+`;
+
+/* ========================================================= */
+const STORE_KEY = "doraji-app-v3";
+const TSTORE_KEY = "doraji-teacher-v1";
+const GSTORE_KEY = "doraji-gallery-local-v1";
+const HAN2I = {}; YUL.forEach((y, i) => HAN2I[y.h] = i);
+const STAIR_COLORS = ["#e8b4a6", "#eecb98", "#f1e09e", "#c6dbab", "#a7cfc4", "#a9bcdb", "#c4b2d9"];
+const CARD_COLORS = ["var(--red)", "var(--teal)", "var(--gold)", "var(--navy)", "var(--pink)", "var(--green)"];
+const $ = (id) => document.getElementById(id);
+
+/* ---------- 그림 ---------- */
+function mascotSVG(size) {
+  const petals = [0, 72, 144, 216, 288].map(r => `<g transform="rotate(${r})"><path d="M0 -6 C-20 -14 -22 -48 0 -58 C22 -48 20 -14 0 -6Z" fill="#a585d6" stroke="#4a3b5c" stroke-width="3.5"/><path d="M0 -14 V-48" stroke="#7a5cae" stroke-width="2"/></g>`).join("");
+  return `<svg width="${size}" height="${size}" viewBox="-62 -62 124 124" aria-hidden="true">${petals}
+    <circle r="24" fill="#fff6d6" stroke="#4a3b5c" stroke-width="3.5"/>
+    <circle cx="-8" cy="-4" r="4" fill="#2e2723"/><circle cx="8" cy="-4" r="4" fill="#2e2723"/>
+    <circle cx="-15" cy="6" r="4" fill="#f0a3a3"/><circle cx="15" cy="6" r="4" fill="#f0a3a3"/>
+    <path d="M-8 7 Q0 15 8 7" stroke="#2e2723" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`;
+}
+const ICONS = {
+  quiz: `<rect x="10" y="8" width="44" height="48" rx="3" fill="#fffaf0" stroke="#2e2723" stroke-width="3"/><path d="M25 8V56M39 8V56M10 24H54M10 40H54" stroke="#6b5a45" stroke-width="2"/><circle cx="46" cy="46" r="13" fill="#a8322a" stroke="#2e2723" stroke-width="3"/><text x="46" y="52" text-anchor="middle" font-size="18" font-weight="900" fill="#fff">?</text>`,
+  make: `<g transform="rotate(-35 32 32)"><rect x="27" y="2" width="11" height="60" rx="5" fill="#d9b56a" stroke="#2e2723" stroke-width="3"/><path d="M27 20H38M27 40H38" stroke="#8a6a2e" stroke-width="2"/><circle cx="32.5" cy="28" r="2.6" fill="#2e2723"/><circle cx="32.5" cy="34" r="2.6" fill="#2e2723"/><circle cx="32.5" cy="48" r="2.6" fill="#2e2723"/></g><text x="50" y="22" font-size="16" fill="#2f6b5e" font-weight="900">♪</text><text x="8" y="58" font-size="14" fill="#a8322a" font-weight="900">♫</text>`,
+  share: `<rect x="14" y="14" width="36" height="36" fill="#fffaf0" stroke="#2e2723" stroke-width="3"/><rect x="8" y="10" width="48" height="8" rx="4" fill="#c9962e" stroke="#2e2723" stroke-width="3"/><rect x="8" y="46" width="48" height="8" rx="4" fill="#c9962e" stroke="#2e2723" stroke-width="3"/><path d="M22 28H42M22 36H36" stroke="#6b5a45" stroke-width="3" stroke-linecap="round"/>`,
+  gallery: `<path d="M32 56 L6 22 A34 34 0 0 1 58 22 Z" fill="#fffaf0" stroke="#2e2723" stroke-width="3" stroke-linejoin="round"/><path d="M32 56L14 16M32 56L24 12M32 56L32 10M32 56L40 12M32 56L50 16" stroke="#26406b" stroke-width="2"/><path d="M8 24 A32 30 0 0 1 56 24" fill="none" stroke="#a8322a" stroke-width="4"/><circle cx="32" cy="56" r="4" fill="#c9962e" stroke="#2e2723" stroke-width="2"/>`
+};
+function iconSVG(name, size) { return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" aria-hidden="true">${ICONS[name] || ""}</svg>`; }
+
+/* ---------- 악보 데이터 읽기 ---------- */
+function parseScore(text, lineOffset) {
+  const lines = text.split("\n").map(s => s.trim()).filter(Boolean);
+  return lines.map((line, li) => {
+    const jdNo = lineOffset + li + 1;
+    const body = line.slice(Math.max(0, line.indexOf("[")));
+    const groups = [...body.matchAll(/\[([^\]]*)\]/g)].map(m => m[1]);
+    if (groups.length !== 3) throw new Error(`악보 데이터 ${jdNo}장단 형식 오류 (정간이 3개가 아니에요)`);
+    return groups.map((g, gi) => {
+      const toks = g.split(",").map(s => s.trim());
+      if (toks.length === 1 && toks[0] === "□") return { blank: true, slots: ["△", "-", "-"] };
+      if (toks.length !== 3) throw new Error(`악보 데이터 ${jdNo}장단 ${gi + 1}정간 형식 오류`);
+      for (const t of toks) if (!(t === "-" || t === "△" || t in HAN2I)) throw new Error(`악보 데이터 ${jdNo}장단 ${gi + 1}정간 형식 오류 ("${t}"는 쓸 수 없는 글자예요)`);
+      return { blank: false, slots: toks };
+    });
+  });
+}
+let ORIG_CELLS = [], BASE_CELLS = [], BLANKS = [], PART_START = 0, DATA_OK = true;
+(function buildData() {
+  try {
+    const orig = parseScore(ORIGINAL_SCORE, 0);
+    const partLines = STUDENT_PART.split("\n").map(s => s.trim()).filter(Boolean).length;
+    if (partLines > orig.length) throw new Error("악보 데이터 오류: 학생 부분이 원곡보다 길어요");
+    const part = parseScore(STUDENT_PART, orig.length - partLines);
+    if (orig.flat().some(c => c.blank)) throw new Error("악보 데이터 오류: 원곡에는 [□]를 쓰지 않아요");
+    ORIG_CELLS = orig.flat();
+    PART_START = (orig.length - part.length) * 3;
+    BASE_CELLS = ORIG_CELLS.slice(0, PART_START).concat(part.flat());
+    BASE_CELLS.forEach((c, g) => { if (c.blank) { c.bi = BLANKS.length; BLANKS.push(g); } });
+    if (!BLANKS.length) throw new Error("악보 데이터 오류: 학생 부분에 빈칸 [□]이 없어요");
+  } catch (e) {
+    DATA_OK = false;
+    const b = $("dataError"); b.textContent = e.message; b.classList.remove("hidden");
+  }
+})();
+
+/* ---------- 이 기기에 저장 ---------- */
+function defaultState() {
+  return { quizLevel: 1, quizSolved: 0, quizRounds: 0, medals: [false, false, false], fills: BLANKS.map(() => null),
+           counts: { orig: 0, mine: 0 }, completed: false, title: "", feel: "", num: "", link: "", uploaded: false,
+           drum: true, tempo: null };
+}
+let S = defaultState();
+let T = { tempo: "normal", nextRule: true, endRule: false };
+let LOCAL_GALLERY = [];
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) {
+      S = Object.assign(defaultState(), JSON.parse(raw));
+      if (!Array.isArray(S.fills) || S.fills.length !== BLANKS.length) S.fills = BLANKS.map(() => null);
+      S.fills = S.fills.map(v => (Number.isInteger(v) && v >= 0 && v < YUL.length) ? v : null);
+    }
+  } catch (e) {}
+  try { const t = localStorage.getItem(TSTORE_KEY); if (t) T = Object.assign(T, JSON.parse(t)); } catch (e) {}
+  try { const g = JSON.parse(localStorage.getItem(GSTORE_KEY) || "[]"); if (Array.isArray(g)) LOCAL_GALLERY = g.map(sanitizeWork).filter(Boolean); } catch (e) {}
+}
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) {} }
+function saveT() { try { localStorage.setItem(TSTORE_KEY, JSON.stringify(T)); } catch (e) {} }
+function saveG() { try { localStorage.setItem(GSTORE_KEY, JSON.stringify(LOCAL_GALLERY)); } catch (e) {} }
+function tempo() { return S.tempo || T.tempo || "normal"; }
+
+/* ---------- 소리 ---------- */
+let ctx = null, noiseBuf = null, session = null, tapNodes = [];
+function ensureCtx() {
+  try {
+    if (!ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      ctx = new AC();
+      noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    if (ctx.state === "suspended") ctx.resume();
+    return ctx;
+  } catch (e) { return null; }
+}
+function freqOf(i) { return YUL[i].f * Math.pow(2, CONFIG.OCTAVE_SHIFT); }
+function flute(dest, i, t, dur, list) {
+  const f = freqOf(i);
+  const g = ctx.createGain();
+  const a = Math.min(0.05, dur * 0.25), r = Math.min(0.08, dur * 0.3);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.32, t + a);
+  g.gain.setValueAtTime(0.28, Math.max(t + a, t + dur - r));
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  const o1 = ctx.createOscillator(); o1.type = "sine"; o1.frequency.setValueAtTime(f, t);
+  const o2 = ctx.createOscillator(); o2.type = "sine"; o2.frequency.setValueAtTime(f * 2, t);
+  const g2 = ctx.createGain(); g2.gain.value = 0.12;
+  const o3 = ctx.createOscillator(); o3.type = "sine"; o3.frequency.setValueAtTime(f * 3, t);
+  const g3 = ctx.createGain(); g3.gain.value = 0.04;
+  if (dur > 0.6) {
+    const v = ctx.createOscillator(); v.frequency.value = 5;
+    const vg = ctx.createGain(); vg.gain.setValueAtTime(0, t); vg.gain.linearRampToValueAtTime(f * 0.005, t + dur);
+    v.connect(vg); vg.connect(o1.frequency); v.start(t); v.stop(t + dur + 0.02); list.push(v);
+  }
+  o1.connect(g); o2.connect(g2); g2.connect(g); o3.connect(g3); g3.connect(g); g.connect(dest);
+  const n = ctx.createBufferSource(); n.buffer = noiseBuf;
+  const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = f * 2; bp.Q.value = 2;
+  const ng = ctx.createGain(); ng.gain.setValueAtTime(0.06, t); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.1);
+  n.connect(bp); bp.connect(ng); ng.connect(dest);
+  [o1, o2, o3].forEach(o => { o.start(t); o.stop(t + dur + 0.02); list.push(o); });
+  n.start(t); n.stop(t + 0.12); list.push(n);
+}
+/* 장구 소리: 가죽(막)이 울리는 여러 배음을 겹쳐 만듦
+   궁편(왼쪽, 손·궁채) = 낮고 둥근 "쿵", 채편(오른쪽, 열채) = 높고 맑은 "덕" */
+const MEMBRANE = [1, 1.59, 2.14, 2.30, 2.65]; // 둥근 가죽이 울리는 배음 비율
+function membrane(dest, t, o, list) {
+  const jitter = 1 + (Math.random() - 0.5) * 0.03;           // 칠 때마다 조금씩 다르게
+  const f0 = o.f0 * jitter, out = ctx.createGain();
+  out.gain.value = o.gain * (0.92 + Math.random() * 0.16);
+  out.connect(dest);
+  MEMBRANE.forEach((r, k) => {
+    const osc = ctx.createOscillator(); osc.type = "sine";
+    osc.frequency.setValueAtTime(f0 * r * o.glide, t);
+    osc.frequency.exponentialRampToValueAtTime(f0 * r, t + 0.05);
+    const g = ctx.createGain(), d = o.decays[k];
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(o.amps[k], t + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    osc.connect(g); g.connect(out); osc.start(t); osc.stop(t + d + 0.02); list.push(osc);
+  });
+  // 손이나 채가 가죽에 닿는 순간의 소리
+  const n = ctx.createBufferSource(); n.buffer = noiseBuf;
+  const fl = ctx.createBiquadFilter(); fl.type = o.clickType; fl.frequency.value = o.clickFreq; fl.Q.value = o.clickQ;
+  const ng = ctx.createGain(); ng.gain.setValueAtTime(o.click, t); ng.gain.exponentialRampToValueAtTime(0.0001, t + o.clickLen);
+  n.connect(fl); fl.connect(ng); ng.connect(out); n.start(t, Math.random() * 0.5); n.stop(t + o.clickLen + 0.01); list.push(n);
+}
+function drumKung(dest, t, list) {   // 궁편: 쿵
+  membrane(dest, t, { f0: 92, glide: 1.12, gain: 0.85, amps: [1, 0.45, 0.25, 0.16, 0.08], decays: [0.6, 0.38, 0.26, 0.2, 0.15],
+    clickType: "lowpass", clickFreq: 420, clickQ: 0.7, click: 0.5, clickLen: 0.03 }, list);
+}
+function drumDeok(dest, t, list) {   // 채편: 덕
+  membrane(dest, t, { f0: 360, glide: 1.04, gain: 0.42, amps: [1, 0.55, 0.35, 0.3, 0.15], decays: [0.2, 0.13, 0.1, 0.08, 0.06],
+    clickType: "bandpass", clickFreq: 2600, clickQ: 0.9, click: 0.55, clickLen: 0.014 }, list);
+}
+function playTone(i, dur) {
+  if (!ensureCtx()) { toast("소리를 낼 수 없는 브라우저예요"); return; }
+  stopTap();
+  const out = ctx.createGain(); out.gain.value = 0.9; out.connect(ctx.destination);
+  flute(out, i, ctx.currentTime + 0.02, dur || 0.7, tapNodes);
+}
+// 짧은 가락(퀴즈용): 음 여러 개를 차례로
+function playSeq(arr, each) {
+  if (!ensureCtx()) { toast("소리를 낼 수 없는 브라우저예요"); return; }
+  stopTap(); stopPlayback();
+  const out = ctx.createGain(); out.gain.value = 0.9; out.connect(ctx.destination);
+  const t0 = ctx.currentTime + 0.05;
+  arr.forEach((i, k) => flute(out, i, t0 + k * each, each * 0.95, tapNodes));
+}
+function stopTap() { tapNodes.forEach(n => { try { n.stop(0); } catch (e) {} }); tapNodes = []; }
+function startPlayback(opts) {
+  stopPlayback(); stopTap();
+  if (!ensureCtx()) { toast("소리를 낼 수 없는 브라우저예요"); return; }
+  const { cells, g0, g1, kind, targets, onEnd, drum } = opts;
+  const sd = CONFIG.JEONGGAN_SEC[tempo()] / 3;
+  const seq = [];
+  for (let g = g0; g < g1; g++) for (let s = 0; s < 3; s++) seq.push({ g, s, t: cells[g].slots[s] });
+  const notes = []; let cur = null;
+  seq.forEach((x, k) => {
+    if (x.t === "-") { if (cur) cur.len++; }
+    else if (x.t === "△") cur = null;
+    else { cur = { i: HAN2I[x.t], k, len: 1 }; notes.push(cur); }
+  });
+  const master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
+  const list = [], start = ctx.currentTime + 0.15;
+  notes.forEach(n => flute(master, n.i, start + n.k * sd, n.len * sd * 0.97, list));
+  if (drum) for (let k = 0; k < seq.length; k++) {
+    const p = k % 9, t = start + k * sd;
+    if (p === 0 || p === 3) { drumKung(master, t, list); drumDeok(master, t, list); }
+    else if (p === 5 || p === 7) drumDeok(master, t, list);
+    else if (p === 6) drumKung(master, t, list);
+  }
+  session = { master, list, start, sd, seq, kind, targets: targets || [], onEnd, last: -1, raf: 0 };
+  const tick = () => {
+    if (!session) return;
+    const k = Math.floor((ctx.currentTime - session.start) / session.sd);
+    if (k >= session.seq.length) { finishPlayback(true); return; }
+    if (k >= 0 && k !== session.last) { session.last = k; highlight(session.targets, session.seq[k].g, session.seq[k].s); }
+    session.raf = requestAnimationFrame(tick);
+  };
+  session.raf = requestAnimationFrame(tick);
+  refreshPlayButtons();
+}
+function finishPlayback(natural) {
+  if (!session) return;
+  const s = session;
+  cancelAnimationFrame(s.raf);
+  s.list.forEach(n => { try { n.stop(0); } catch (e) {} });
+  try { s.master.gain.setValueAtTime(0, ctx.currentTime); s.master.disconnect(); } catch (e) {}
+  clearHighlight(s.targets);
+  session = null;
+  refreshPlayButtons();
+  if (natural && s.onEnd) s.onEnd();
+}
+function stopPlayback() { finishPlayback(false); }
+
+/* ---------- 정간보 그리기 ---------- */
+function groupsOf(slots) {
+  if (slots[1] === "-" && slots[2] === "-") return [{ t: slots[0] === "-" ? "" : slots[0], a: 0, b: 2 }];
+  const out = [];
+  slots.forEach((t, i) => { const last = out[out.length - 1]; if (t === "-" && last && last.t === "-") last.b = i; else out.push({ t, a: i, b: i }); });
+  return out;
+}
+function yulHTML(t) {
+  if (t === "") return "";
+  if (t === "-") return `<span class="dash" aria-label="이어서">–</span>`;
+  if (t === "△") return `<span class="dash" aria-label="쉼">△</span>`;
+  const y = YUL[HAN2I[t]];
+  return `<span class="hj">${y.h}</span><span class="hg">${y.k}</span>`;
+}
+const REL = { same: "→", up: "↑", down: "↓", jump: "⚠" };
+function renderScore(container, opts) {
+  const { g0, g1, fills, analysis, sel, big, showBlanks, colLabels } = opts;
+  const per = (opts.per || CONFIG.JANGDAN_PER_COLUMN) * 3;
+  let html = `<div class="score${big ? " big" : ""}">`;
+  for (let c0 = g0; c0 < g1; c0 += per) {
+    html += `<div class="col">`;
+    if (colLabels) html += `<div class="colhead">${(c0 - g0) / per + 1}장단</div>`;
+    for (let g = c0; g < Math.min(c0 + per, g1); g++) {
+      const base = showBlanks ? BASE_CELLS[g] : ORIG_CELLS[g];
+      const end = (g + 1) % 3 === 0 ? " jd-end" : "";
+      if (showBlanks && base.blank) {
+        const bi = base.bi, v = fills ? fills[bi] : null;
+        const an = analysis ? analysis[bi] : null;
+        const bad = an && an.errs.length ? " bad" : "";
+        const isSel = sel === bi ? " sel" : "";
+        if (v == null) {
+          html += `<div class="cell blank${end}${isSel}" data-bi="${bi}" data-g="${g}" role="button" aria-label="빈칸 ${bi + 1}번"><div class="box">□</div><div class="boxlab">빈칸 ${bi + 1}</div></div>`;
+        } else {
+          const rel = an && an.rel && REL[an.rel] ? REL[an.rel] : (bad ? "⚠" : "");
+          html += `<div class="cell blank filled${end}${bad}${isSel}" data-bi="${bi}" data-g="${g}" role="button" aria-label="빈칸 ${bi + 1}번 ${YUL[v].k}"><span class="num">${bi + 1}</span><span class="rel">${rel}</span><div class="grp" style="flex-grow:3" data-a="0" data-b="2">${yulHTML(YUL[v].h)}</div></div>`;
+        }
+      } else {
+        html += `<div class="cell${end}" data-g="${g}">` + groupsOf(base.slots).map(gr =>
+          `<div class="grp" style="flex-grow:${gr.b - gr.a + 1}" data-a="${gr.a}" data-b="${gr.b}">${yulHTML(gr.t)}</div>`).join("") + `</div>`;
+      }
+    }
+    html += `</div>`;
+  }
+  container.innerHTML = html + `</div>`;
+}
+function highlight(targets, g, s) {
+  targets.forEach(el => {
+    if (!el) return;
+    el.querySelectorAll(".cell.playing").forEach(c => c.classList.remove("playing"));
+    el.querySelectorAll(".grp.now").forEach(c => c.classList.remove("now"));
+    const cell = el.querySelector(`.cell[data-g="${g}"]`);
+    if (!cell) return;
+    cell.classList.add("playing");
+    cell.querySelectorAll(".grp").forEach(gr => { if (s >= +gr.dataset.a && s <= +gr.dataset.b) gr.classList.add("now"); });
+  });
+}
+function clearHighlight(targets) {
+  targets.forEach(el => {
+    if (!el) return;
+    el.querySelectorAll(".cell.playing").forEach(c => c.classList.remove("playing"));
+    el.querySelectorAll(".grp.now").forEach(c => c.classList.remove("now"));
+  });
+}
+
+/* ---------- 규칙 확인 ---------- */
+function mineCells(fills) {
+  return BASE_CELLS.map(c => {
+    if (!c.blank) return c;
+    const v = fills[c.bi];
+    return v == null ? { blank: true, bi: c.bi, filled: false, slots: ["△", "-", "-"] }
+                     : { blank: true, bi: c.bi, filled: true, slots: [YUL[v].h, "-", "-"] };
+  });
+}
+function prevNote(cells, g) {
+  for (let k = g - 1; k >= 0; k--) {
+    const c = cells[k];
+    if (c.blank && !c.filled) return { unknown: true };
+    for (let s = 2; s >= 0; s--) { const t = c.slots[s]; if (t === "-") continue; if (t === "△") return null; return { i: HAN2I[t] }; }
+  }
+  return null;
+}
+function nextNote(cells, g) {
+  for (let k = g + 1; k < cells.length; k++) {
+    const c = cells[k];
+    if (c.blank) return null;
+    for (let s = 0; s < 3; s++) { const t = c.slots[s]; if (t === "-") continue; if (t === "△") return null; return { i: HAN2I[t] }; }
+  }
+  return null;
+}
+function analyze(fills) {
+  const cells = mineCells(fills);
+  return BLANKS.map((g, bi) => {
+    const v = fills[bi]; const r = { bi, g, v, errs: [], rel: null };
+    if (v == null) return r;
+    const p = prevNote(cells, g);
+    if (p && p.unknown) r.rel = "unknown";
+    else if (p) {
+      const d = v - p.i;
+      if (d === 0) r.rel = "same"; else if (d === 1) r.rel = "up"; else if (d === -1) r.rel = "down";
+      else { r.rel = "jump"; r.errs.push(`앞 음 ${YUL[p.i].h}(${YUL[p.i].k})에서 두 칸 이상 뛰었어요.`); }
+    }
+    if (T.nextRule) { const n = nextNote(cells, g); if (n && Math.abs(n.i - v) > 1) r.errs.push(`다음 음 ${YUL[n.i].h}(${YUL[n.i].k})${J(n.i, "로")} 이어지지 않아요.`); }
+    if (T.endRule && g === cells.length - 1 && !(v === 0 || v === 2)) r.errs.push("마지막 음은 仲(중)이나 無(무)로 끝내요.");
+    return r;
+  });
+}
+const REL_TEXT = { same: "→ 같은 음", up: "↑ 한 음 위", down: "↓ 한 음 아래" };
+function workIsValid(fills) { return fills.every(v => v != null) && analyze(fills).every(r => !r.errs.length); }
+
+/* ---------- 화면 전환 (순서 제한 없음) ---------- */
+let current = "home";
+function show(name) {
+  stopPlayback(); stopTap(); closeModal();
+  current = name;
+  document.querySelectorAll("section.screen").forEach(s => s.classList.toggle("on", s.id === "s-" + name));
+  document.querySelectorAll(".tabs button").forEach(b => { if (b.dataset.go === name) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+  ({ home: renderHome, quiz: () => { if (!quiz) newRound(); renderQuiz(); }, make: renderMake, share: renderShare, gallery: renderGallery, teacher: renderTeacher }[name] || (() => {}))();
+  window.scrollTo(0, 0);
+}
+function go(name) {
+  ensureCtx();
+  if (location.hash && location.hash !== "#") { try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {} }
+  show(name);
+}
+
+/* ---------- 메달 ---------- */
+const MEDAL_NAMES = ["견습 소리꾼", "민요 짓는 소리꾼", "우리 반 명창"];
+const MEDAL_SHORT = ["견습", "민요 짓기", "명창"];
+function renderMedals() {
+  S.medals.forEach((on, i) => {
+    const el = $("m" + i);
+    el.classList.toggle("off", !on);
+    el.querySelector(".lb").textContent = on ? MEDAL_SHORT[i] : "아직";
+    el.title = on ? MEDAL_NAMES[i] : "아직 못 받은 메달";
+  });
+}
+function award(i) {
+  if (S.medals[i]) return;
+  S.medals[i] = true; save(); renderMedals();
+  toast(["🥉", "🥈", "🥇"][i] + " " + MEDAL_NAMES[i] + " 메달을 받았어요!");
+  if (S.medals.every(Boolean)) celebrate();
+}
+function celebrate() {
+  const d = document.createElement("div");
+  d.className = "celebrate";
+  d.innerHTML = `<div class="panel">${mascotSVG(120)}<div>메달 3개를 다 모았어요!<br>우리 반 명창 🎉</div></div>`;
+  document.body.appendChild(d);
+  setTimeout(() => { d.style.opacity = "0"; }, 1800);
+  setTimeout(() => d.remove(), 2400);
+}
+
+/* ---------- 알림·창 ---------- */
+let toastTimer = 0;
+function toast(text) {
+  document.querySelectorAll(".toast").forEach(t => t.remove());
+  const t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); t.textContent = text;
+  document.body.appendChild(t);
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.remove(), 2200);
+}
+function closeModal() { $("modalRoot").innerHTML = ""; }
+function confirmBox(text, onYes) {
+  $("modalRoot").innerHTML = `<div class="modal-bg"><div class="modal" role="dialog" aria-modal="true"><div>${text}</div>
+    <div class="row"><button class="b-red" id="mYes">예</button><button id="mNo">아니요</button></div></div></div>`;
+  $("mYes").onclick = () => { closeModal(); onYes(); };
+  $("mNo").onclick = closeModal;
+  $("mNo").focus();
+}
+
+/* ---------- 처음으로 다시하기: 이 기기의 학생 기록을 모두 지움 ---------- */
+function fullReset() {
+  stopPlayback(); stopTap(); closeModal();
+  S = defaultState(); save();
+  history_ = []; sel = 0; quiz = null;
+  renderMedals();
+  ["inTitle", "inFeel", "inNum", "linkOut"].forEach(id => { const el = $(id); if (el) el.value = ""; });
+  ["shareErr", "uploadMsg", "copyMsg"].forEach(id => { const el = $(id); if (el) el.textContent = ""; });
+  $("linkArea").classList.add("hidden");
+  setMsg(""); $("makeMsg").classList.remove("warn");
+  go("home");
+  toast("🔄 처음부터 다시 시작해요!");
+}
+
+/* ---------- 첫 화면 ---------- */
+function renderHome() {
+  const filled = S.fills.filter(v => v != null).length;
+  $("stQuiz").textContent = S.quizSolved ? `${S.quizLevel}단계 도전 중 · 맞힌 문제 ${S.quizSolved}개` : "1단계부터 시작해요";
+  $("stMake").textContent = S.completed && workIsValid(S.fills) ? "✔ 완성했어요" : `빈칸 ${filled} / ${BLANKS.length} 채움`;
+  $("stShare").textContent = S.uploaded ? "✔ 갤러리에 올렸어요" : (S.link ? "✔ 링크를 만들었어요" : "아직 안 했어요");
+  $("stGallery").textContent = `작품 ${galleryWorks().length}개`;
+}
+
+/* ---------- 율명 퀴즈 (단계가 계속 올라감) ---------- */
+let quiz = null;
+const rnd = (n) => Math.floor(Math.random() * n);
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function pickOthers(ans, n, exclude) { return shuffle(YUL.map((_, i) => i).filter(i => i !== ans && !(exclude || []).includes(i))).slice(0, n); }
+const yl = (i) => `<span class="hj">${YUL[i].h}</span>(${YUL[i].k})`;
+/* 받침에 따라 조사 고르기 (예: 중이에요 / 무예요) */
+function hasJong(w) { const c = String(w).charCodeAt(String(w).length - 1); return c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 !== 0; }
+function jongIsL(w) { const c = String(w).charCodeAt(String(w).length - 1); return c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 === 8; }
+function P(w, t) {
+  const j = hasJong(w);
+  return { "은는": j ? "은" : "는", "이가": j ? "이" : "가", "을를": j ? "을" : "를", "와과": j ? "과" : "와",
+           "예요": j ? "이에요" : "예요", "이라고": j ? "이라고" : "라고", "로": (j && !jongIsL(w)) ? "으로" : "로" }[t];
+}
+const J = (i, t) => P(YUL[i].k, t);
+const QTYPES = {
+  name:  { lv: 1, make() { const i = rnd(7); return { type: "name", key: "name" + i, q: `이 율명은 무엇이라고 읽을까요?`, big: YUL[i].h, ans: i, choices: shuffle([i, ...pickOthers(i, 3)]), label: (c) => YUL[c].k, ansText: `${yl(i)}${J(i, "예요")}.`, sound: i }; } },
+  rname: { lv: 1, make() { const i = rnd(7); return { type: "rname", key: "rname" + i, hanja: true, q: `‘${YUL[i].k}’${J(i, "을를")} 율명 글자로 쓰면?`, ans: i, choices: shuffle([i, ...pickOthers(i, 3)]), label: (c) => YUL[c].h, ansText: `${yl(i)}${J(i, "예요")}.`, sound: i }; } },
+  near:  { lv: 1, make() { const up = Math.random() < 0.5; const b = up ? rnd(6) : 1 + rnd(6); const a = up ? b + 1 : b - 1;
+           return { type: "near", base: b, up, key: "near" + b + up, q: `🪜 음 계단에서 ${yl(b)} 바로 ${up ? "위" : "아래"}의 음은?`, ans: a, choices: shuffle([a, b, ...pickOthers(a, 2, [b])]), label: (c) => yl(c), ansText: `${yl(a)}${J(a, "예요")}.`, sound: a }; } },
+  texthigh: { lv: 1, make() { let a, b; do { a = rnd(7); b = rnd(7); } while (a === b); const h = Math.max(a, b);
+           return { type: "texthigh", a, b, key: "th" + a + b, q: `두 율명 중 더 높은 음은?`, ans: h, choices: [a, b], label: (c) => yl(c), ansText: `${yl(h)}${J(h, "예요")}.`, sound: h }; } },
+  high:  { lv: 2, make() { let a, b; do { a = rnd(7); b = rnd(7); } while (a === b);
+           return { type: "high", a, b, key: "hi" + a + b, listen: [["🔊 1번 소리", [a]], ["🔊 2번 소리", [b]]], q: `🔊 두 소리를 듣고, 더 높은 소리를 골라요.`, ans: a > b ? 1 : 2, choices: [1, 2], label: (c) => `${c}번 소리가 더 높아요`, ansText: `${a > b ? 1 : 2}번 소리예요. (1번 ${yl(a)}, 2번 ${yl(b)})`, sound: Math.max(a, b) }; } },
+  next:  { lv: 2, make() { const p = rnd(7); const ok = [p - 1, p, p + 1].filter(x => x >= 0 && x < 7); const a = ok[rnd(ok.length)];
+           const bad = shuffle(YUL.map((_, i) => i).filter(i => Math.abs(i - p) >= 2)).slice(0, 3);
+           return { type: "next", p, key: "nx" + p + a, q: `규칙 3! 앞 음이 ${yl(p)}일 때, 바로 다음에 올 수 있는 음은?`, ans: a, choices: shuffle([a, ...bad]), label: (c) => yl(c), ansText: `${yl(a)}${J(a, "예요")}.`, sound: a }; } },
+  melody: { lv: 2, make() { const kinds = ["up", "down", "same", "updown"]; const k = kinds[rnd(4)]; let s;
+           if (k === "up") { const b = rnd(5); s = [b, b + 1, b + 2]; } else if (k === "down") { const b = 2 + rnd(5); s = [b, b - 1, b - 2]; }
+           else if (k === "same") { const b = rnd(7); s = [b, b, b]; } else { const b = rnd(6); s = [b, b + 1, b]; }
+           return { type: "melody", s, key: "md" + s.join(""), listen: [["🔊 가락 듣기", s]], q: `🔊 짧은 가락을 듣고, 어떻게 움직이는지 골라요.`, ans: k, choices: kinds, label: (c) => MELODY_LABEL[c], ansText: `${MELODY_LABEL[k]} (${s.map(i => YUL[i].h).join(" → ")})`, seqAns: s }; } },
+  step:  { lv: 3, make() { let b, n; do { b = rnd(7); n = (Math.random() < 0.5 ? -1 : 1) * (2 + rnd(2)); } while (b + n < 0 || b + n > 6); const a = b + n;
+           return { type: "step", base: b, n, key: "st" + b + n, q: `🪜 ${yl(b)}에서 음 계단을 ${Math.abs(n)}칸 ${n > 0 ? "올라가면" : "내려가면"}?`, ans: a, choices: shuffle([a, ...pickOthers(a, 3)]), label: (c) => yl(c), ansText: `${yl(a)}${J(a, "예요")}.`, sound: a }; } },
+  ear:   { lv: 3, make() { const i = 1 + rnd(6); const ch = shuffle([i, ...pickOthers(i, 2, [0])]);
+           return { type: "ear", key: "ear" + i, listen: [["🔊 기준음 仲", [0]], ["🔊 문제 소리", [i]]], q: `🔊 기준음 ${yl(0)}${J(0, "와과")} 비교해 보고, 문제 소리가 무엇인지 맞혀요.`, ans: i, choices: ch, label: (c) => yl(c), ansText: `${yl(i)}${J(i, "예요")}.`, sound: i }; } }
+};
+const MELODY_LABEL = { up: "⬆ 점점 올라가요", down: "⬇ 점점 내려가요", same: "➡ 같은 음이 계속돼요", updown: "⤴⤵ 올라갔다 내려와요" };
+const MELODY_MEANS = { up: "음이 한 칸씩 계속 높아지는 가락", down: "음이 한 칸씩 계속 낮아지는 가락", same: "같은 높이의 음이 이어지는 가락", updown: "한 칸 올라갔다가 다시 처음 음으로 내려오는 가락" };
+/* ---------- 틀렸을 때 이유 설명 ---------- */
+const CHEONG_BASE = { 3: "黃(황)", 4: "太(태)", 5: "仲(중)", 6: "林(임)" }; // 청성(한 옥타브 위) 글자의 바탕 글자
+const yb = (i) => `<b>${yl(i)}</b>`;
+function rungOf(i) { return i + 1; } // 음 계단 몇째 칸 (낮은 음부터 1)
+function moveText(from, to) {
+  const d = to - from;
+  if (d === 0) return "같은 자리";
+  return `${Math.abs(d)}칸 ${d > 0 ? "위" : "아래"}`;
+}
+function cheongTip(i) {
+  return CHEONG_BASE[i] ? `${YUL[i].h}${J(i, "은는")} ${CHEONG_BASE[i]} 글자 왼쪽에 <b>氵(물 수)</b>가 붙은 글자예요. 氵이 붙으면 한 옥타브 높은 <b>‘청’</b> 소리라서 ‘${YUL[i].k}’${J(i, "이라고")} 읽어요.` : "";
+}
+function ladderHTML(marks) {   // marks: {index: "ans"|"pick"|"base"}
+  return `<div class="ladderline" aria-label="음 계단">` + YUL.map((y, i) => {
+    const m = marks[i] || "";
+    const tag = m === "ans" ? "⭕ 정답" : m === "pick" ? "❌ 고른 음" : m === "base" ? "▲ 기준" : "";
+    return `<span class="rung ${m}" style="height:${34 + i * 6}px"><span class="hj">${y.h}</span><small>${y.k}</small>${tag ? `<em>${tag}</em>` : ""}</span>`;
+  }).join(`<span class="rarrow">›</span>`) + `</div><div class="note" style="text-align:center">◀ 낮은 음 · 높은 음 ▶</div>`;
+}
+function explain(q, c) {
+  const out = { html: "", marks: null, compare: null };
+  const A = q.ans;
+  switch (q.type) {
+    case "name": {
+      out.html = `고른 ‘${YUL[c].k}’${J(c, "은는")} ${yb(c)}의 이름이에요. ${YUL[A].h}${J(A, "은는")} ‘${YUL[A].k}’${J(A, "이라고")} 읽어요.`;
+      const tip = cheongTip(A); if (tip) out.html += `<br>${tip}`;
+      else if (CHEONG_BASE[c] && Math.abs(c - A) === 5) out.html += `<br>${YUL[A].h}에는 氵이 없어서 ‘청’이 붙지 않아요.`;
+      break;
+    }
+    case "rname": {
+      out.html = `고른 ${yb(c)}${J(c, "은는")} ‘${YUL[c].k}’${J(c, "이라고")} 읽는 글자예요. ‘${YUL[A].k}’${J(A, "은는")} ${YUL[A].h}(${YUL[A].k})${J(A, "로")} 써요.`;
+      if (CHEONG_BASE[A] && !CHEONG_BASE[c]) out.html += `<br>이름에 <b>‘청’</b>이 붙으면 글자 왼쪽에 <b>氵(물 수)</b>가 있는 글자를 골라야 해요.`;
+      else if (!CHEONG_BASE[A] && CHEONG_BASE[c]) out.html += `<br>이름에 ‘청’이 없으니 <b>氵이 없는</b> 글자를 골라야 해요.`;
+      else { const tip = cheongTip(A); if (tip) out.html += `<br>${tip}`; }
+      break;
+    }
+    case "near": {
+      const dir = q.up ? "위" : "아래";
+      if (c === q.base) out.html = `${yb(c)}${J(c, "은는")} 문제에 나온 음, 바로 그 자리예요. 계단을 한 칸 ${dir}로 움직여야 해요.`;
+      else {
+        const d = c - q.base;
+        out.html = `${yb(c)}${J(c, "은는")} ${yl(q.base)}에서 <b>${moveText(q.base, c)}</b>예요.`;
+        if ((d > 0) !== q.up) out.html += ` 방향이 반대예요! 문제는 바로 <b>${dir}</b>를 물었어요.`;
+        else out.html += ` ‘바로 ${dir}’는 딱 <b>한 칸</b>만 움직인 음이에요.`;
+      }
+      out.marks = { [q.base]: "base", [c]: "pick", [A]: "ans" };
+      out.compare = [q.base, A];
+      break;
+    }
+    case "texthigh": {
+      const lo = Math.min(q.a, q.b);
+      out.html = `음 계단에서 ${yb(lo)}${J(lo, "은는")} 아래에서 <b>${rungOf(lo)}번째</b> 칸, ${yb(A)}${J(A, "은는")} <b>${rungOf(A)}번째</b> 칸이에요. 더 위에 있는 ${YUL[A].h}(${YUL[A].k})${J(A, "이가")} 높은 음이에요.`;
+      if (CHEONG_BASE[A] && !CHEONG_BASE[lo]) out.html += `<br>氵이 붙은 ‘청’ 소리는 한 옥타브 위라서 높은 쪽에 있어요.`;
+      out.marks = { [c]: "pick", [A]: "ans" };
+      out.compare = [lo, A];
+      break;
+    }
+    case "high": {
+      const lo = Math.min(q.a, q.b), hi = Math.max(q.a, q.b), gap = hi - lo;
+      out.html = `${c}번 소리는 ${yb(lo)}, ${A}번 소리는 ${yb(hi)}였어요. 음 계단으로 <b>${gap}칸</b> 차이라 ${A}번이 더 높아요.`;
+      out.html += gap === 1 ? `<br>두 소리가 바로 이웃한 음이라 구별하기 어려웠을 거예요. 아래 버튼으로 낮은 소리 → 높은 소리 순서로 다시 들어 봐요.` : `<br>아래 버튼으로 두 소리를 다시 비교해 들어 봐요.`;
+      out.marks = { [lo]: "pick", [hi]: "ans" };
+      out.compare = [lo, hi];
+      break;
+    }
+    case "next": {
+      const ok = [q.p - 1, q.p, q.p + 1].filter(x => x >= 0 && x < 7);
+      out.html = `${yb(c)}${J(c, "은는")} 앞 음 ${yl(q.p)}에서 <b>${moveText(q.p, c)}</b>로 뛰어서 규칙 3(같은 음이나 바로 위·아래 음)을 어겨요.`;
+      out.html += `<br>${YUL[q.p].h}(${YUL[q.p].k}) 다음에는 ${ok.map(i => yl(i)).join(", ")}만 올 수 있어요.`;
+      out.marks = { [q.p]: "base", [c]: "pick", [A]: "ans" };
+      out.compare = [q.p, c];
+      break;
+    }
+    case "melody": {
+      const path = q.s.map(i => YUL[i].h).join(" → ");
+      const steps = q.s.slice(1).map((v, k) => v > q.s[k] ? "↑ 올라감" : v < q.s[k] ? "↓ 내려감" : "→ 같음").join(", ");
+      out.html = `들린 가락은 <b class="hj">${path}</b>${P(YUL[q.s[2]].k, "예요")}. 한 음씩 보면 <b>${steps}</b>이에요.`;
+      out.html += `<br>고른 ‘${MELODY_LABEL[c]}’는 ${MELODY_MEANS[c]}이에요. 이번 가락은 ${MELODY_MEANS[A]}이었어요.`;
+      out.marks = {}; q.s.forEach(i => out.marks[i] = "ans");
+      out.seq = q.s;
+      break;
+    }
+    case "step": {
+      const dir = q.n > 0 ? 1 : -1, path = [];
+      for (let i = q.base; i !== A + dir; i += dir) path.push(YUL[i].h);
+      out.html = `${yl(q.base)}에서 ${Math.abs(q.n)}칸 ${dir > 0 ? "올라가면" : "내려가면"} <b class="hj">${path.join(" → ")}</b>, 그래서 ${YUL[A].h}(${YUL[A].k})${J(A, "예요")}.`;
+      out.html += `<br>고른 ${yb(c)}${J(c, "은는")} ${YUL[q.base].h}에서 <b>${moveText(q.base, c)}</b> 자리예요. 한 칸씩 손가락으로 짚어 가며 세어 봐요.`;
+      out.marks = { [q.base]: "base", [c]: "pick", [A]: "ans" };
+      break;
+    }
+    case "ear": {
+      out.html = `기준음 ${yl(0)}에서 정답 ${yb(A)}${J(A, "은는")} <b>${A}칸 위</b>, 고른 ${yb(c)}${J(c, "은는")} <b>${c}칸 위</b>예요.`;
+      out.html += c > A ? `<br>고른 음은 실제 소리보다 <b>더 높은</b> 음이에요. 문제 소리는 그보다 조금 낮았어요.` : `<br>고른 음은 실제 소리보다 <b>더 낮은</b> 음이에요. 문제 소리는 그보다 조금 높았어요.`;
+      out.marks = { 0: "base", [c]: "pick", [A]: "ans" };
+      out.compare = [c, A];
+      break;
+    }
+  }
+  return out;
+}
+function newRound() {
+  const lv = S.quizLevel;
+  const pool = Object.keys(QTYPES).filter(k => QTYPES[k].lv <= lv);
+  const fresh = pool.filter(k => QTYPES[k].lv === Math.min(lv, 3));
+  const qs = [], keys = new Set();
+  let guard = 0;
+  while (qs.length < 5 && guard++ < 200) {
+    // 새 단계에서 처음 나오는 문제 유형을 2개 이상 섞음
+    const k = (qs.length < 2 && lv > 1) ? fresh[rnd(fresh.length)] : pool[rnd(pool.length)];
+    const q = QTYPES[k].make();
+    if (keys.has(q.key)) continue;
+    keys.add(q.key); qs.push(q);
+  }
+  quiz = { qs: shuffle(qs), n: 0, score: 0, answered: false, done: false, marks: [] };
+}
+function dotsHTML() {
+  return `<div class="qdots" aria-label="문제 진행">` + quiz.qs.map((_, i) => {
+    const m = quiz.marks[i];
+    const cls = m === true ? "ok" : m === false ? "no" : (i === quiz.n && !quiz.done ? "now" : "");
+    return `<div class="qdot ${cls}">${m === true ? "⭕" : m === false ? "❌" : i + 1}</div>`;
+  }).join("") + `</div>`;
+}
+function renderQuiz() {
+  const B = $("quizBody");
+  const top = `<div class="qtop"><span class="lv">${S.quizLevel}단계</span>${dotsHTML()}<b>지금까지 맞힌 문제 ${S.quizSolved}개</b></div>`;
+  if (quiz.done) {
+    const pass = quiz.score >= CONFIG.QUIZ_PASS;
+    B.innerHTML = `${top}<p class="qtext">${pass ? "🎉" : "💪"} 5문제 중 ${quiz.score}개 맞았어요!</p>
+      <p style="font-size:20px;font-weight:700">${pass ? `${S.quizLevel - 1}단계 통과! 다음은 ${S.quizLevel}단계예요. 새로운 문제가 나와요.` : `${CONFIG.QUIZ_PASS}개 이상 맞히면 다음 단계로 올라가요. 새 문제로 다시 도전해요!`}</p>
+      <div class="row" style="margin-top:12px">
+        <button class="b-red" id="qNextRound">${pass ? `${S.quizLevel}단계 도전 ▶` : "🔄 새 문제로 다시 도전"}</button>
+        <button class="b-teal" id="qMake">가락 만들기로 가기</button></div>`;
+    $("qNextRound").onclick = () => { newRound(); renderQuiz(); };
+    $("qMake").onclick = () => go("make");
+    return;
+  }
+  const q = quiz.qs[quiz.n];
+  let body = top + `<p class="qtext">${q.q}</p>`;
+  if (q.big) body += `<div class="qbig hj">${q.big}</div>`;
+  if (q.listen) body += `<div class="listen">${q.listen.map((l, i) => `<button class="${i ? "b-pink" : "b-navy"}" data-l="${i}">${l[0]}</button>`).join("")}</div>`;
+  body += `<div class="choices${q.hanja ? " hanja" : ""}">${q.choices.map((c, i) => `<button data-ci="${i}">${q.label(c)}</button>`).join("")}</div>`;
+  body += `<div class="feedback" id="qFb" aria-live="polite"></div>
+    <div class="row"><button class="b-gold" id="qGo" disabled>${quiz.n === 4 ? "결과 보기 ▶" : "다음 문제 ▶"}</button></div>`;
+  B.innerHTML = body;
+  B.querySelectorAll("[data-l]").forEach(b => b.onclick = () => { const s = q.listen[+b.dataset.l][1]; if (s.length === 1) playTone(s[0], 0.9); else playSeq(s, 0.55); });
+  B.querySelectorAll(".choices button").forEach(btn => btn.onclick = () => answerQuiz(q.choices[+btn.dataset.ci], btn));
+  $("qGo").onclick = () => {
+    if (!quiz.answered) return;
+    quiz.n++; quiz.answered = false;
+    if (quiz.n >= 5) {
+      quiz.done = true; S.quizRounds++;
+      if (quiz.score >= CONFIG.QUIZ_PASS) { S.quizLevel++; award(0); }
+      save();
+    }
+    renderQuiz();
+  };
+}
+function answerQuiz(c, btn) {
+  if (quiz.answered) return;
+  quiz.answered = true;
+  const q = quiz.qs[quiz.n];
+  const ok = c === q.ans;
+  if (ok) { quiz.score++; S.quizSolved++; save(); }
+  quiz.marks[quiz.n] = ok;
+  $("quizBody").querySelectorAll(".choices button").forEach(b => {
+    b.disabled = true; b.style.opacity = "1";
+    const v = q.choices[+b.dataset.ci];
+    if (v === q.ans) b.classList.add("right"); else if (b === btn) b.classList.add("wrong");
+  });
+  const dot = $("quizBody").querySelectorAll(".qdot")[quiz.n];
+  if (dot) { dot.className = "qdot " + (ok ? "ok" : "no"); dot.textContent = ok ? "⭕" : "❌"; }
+  if (ok) {
+    $("qFb").innerHTML = `⭕ 맞았어요! ${q.ansText}`;
+    if (q.seqAns) playSeq(q.seqAns, 0.5); else if (q.sound != null) playTone(q.sound, 0.8);
+  } else {
+    const ex = explain(q, c);
+    let h = `<div>❌ 아쉬워요. 정답은 ${q.ansText}</div><div class="why"><div class="whyhead">💡 왜 틀렸을까?</div><div>${ex.html}</div>`;
+    if (ex.marks) h += ladderHTML(ex.marks);
+    if (ex.compare) h += `<div class="row" style="justify-content:center;margin-top:8px"><button class="b-navy" id="qCmp">🔊 ${YUL[ex.compare[0]].h} → ${YUL[ex.compare[1]].h} 비교해 듣기</button></div>`;
+    if (ex.seq) h += `<div class="row" style="justify-content:center;margin-top:8px"><button class="b-navy" id="qCmp">🔊 가락 다시 듣기</button></div>`;
+    h += `</div>`;
+    $("qFb").innerHTML = h;
+    const cmp = $("qCmp");
+    if (cmp) cmp.onclick = () => ex.seq ? playSeq(ex.seq, 0.55) : playSeq(ex.compare, 0.7);
+    if (ex.seq) playSeq(ex.seq, 0.5); else if (q.sound != null) playTone(q.sound, 0.8);
+  }
+  $("qGo").disabled = false; $("qGo").focus();
+}
+
+/* ---------- 가락 만들기 ---------- */
+let sel = null, history_ = [];
+function renderStairs() {
+  $("stairs").innerHTML = YUL.map((y, i) =>
+    `<button data-y="${i}" style="height:${70 + i * 13}px;background:${STAIR_COLORS[i]}" aria-label="${y.k}"><span class="hj">${y.h}</span><span class="hg">${y.k}</span></button>`).join("");
+  $("stairs").querySelectorAll("button").forEach(b => b.onclick = () => pressYul(+b.dataset.y));
+}
+function renderMake() {
+  $("rule4").classList.toggle("hidden", !T.endRule);
+  const an = analyze(S.fills);
+  renderScore($("makeScore"), { g0: PART_START, g1: BASE_CELLS.length, fills: S.fills, analysis: an, sel, big: true, showBlanks: true, per: 1, colLabels: true });
+  $("makeScore").querySelectorAll(".cell.blank").forEach(c => c.onclick = () => selectBlank(+c.dataset.bi));
+  const left = S.fills.filter(v => v == null).length, bad = an.filter(r => r.errs.length).length;
+  $("makeStatus").textContent = `□ 빈칸 ${left}개 남음 · ⚠ 고칠 칸 ${bad}개`;
+  $("btnUndo").disabled = history_.length === 0;
+  $("btnClear").disabled = sel == null || S.fills[sel] == null;
+  $("btnDrum").textContent = "🥁 장구: " + (S.drum ? "켜짐" : "꺼짐");
+  $("btnTempo").textContent = tempo() === "slow" ? "🐢 느리게" : "🐇 보통";
+  if (!$("makeMsg").innerHTML) setMsg(defaultMsg());
+  refreshPlayButtons();
+}
+function defaultMsg() {
+  return sel != null ? `노란 빈칸(□)을 누르고, 음 계단에서 율명을 골라요.<br><span class="note">지금은 빈칸 ${sel + 1}번이 골라져 있어요.</span>` : "빈칸을 누르면 율명을 바꿀 수 있어요. 다 됐으면 [✨ 완성!]을 눌러요.";
+}
+function setMsg(html, warn) { const m = $("makeMsg"); m.innerHTML = html; m.classList.toggle("warn", !!warn); }
+function cellMsg(bi, an) {
+  const r = an[bi];
+  if (r.v == null) return `<b>빈칸 ${bi + 1}번</b>을 골랐어요. 음 계단에서 율명을 골라요.`;
+  let t = `<b>빈칸 ${bi + 1}번: ${YUL[r.v].h}(${YUL[r.v].k})</b> `;
+  if (r.rel && REL_TEXT[r.rel]) t += REL_TEXT[r.rel];
+  else if (r.rel === "unknown") t += "· 앞 빈칸을 먼저 채우면 이어지는지 알 수 있어요.";
+  if (r.errs.length) t += `<br>⚠ ${r.errs.join(" ")} 음 계단을 보고 다시 골라 봐요.`;
+  return t;
+}
+function selectBlank(bi) { sel = bi; const an = analyze(S.fills); setMsg(cellMsg(bi, an), an[bi].errs.length); renderMake(); }
+function pressYul(i) {
+  playTone(i, 0.7);
+  if (sel == null) { setMsg(`🔊 ${YUL[i].h}(${YUL[i].k}) 소리예요. 칸에 넣으려면 먼저 노란 빈칸을 눌러요.`); return; }
+  const bi = sel;
+  history_.push({ bi, prev: S.fills[bi] });
+  S.fills[bi] = i; afterChange();
+  const an = analyze(S.fills);
+  let msg = cellMsg(bi, an);
+  let nxt = null;
+  for (let k = bi + 1; k < BLANKS.length; k++) if (S.fills[k] == null) { nxt = k; break; }
+  if (nxt == null) for (let k = 0; k < bi; k++) if (S.fills[k] == null) { nxt = k; break; }
+  sel = nxt;
+  if (nxt != null) msg += `<br><span class="note">다음으로 빈칸 ${nxt + 1}번을 골랐어요.</span>`;
+  else if (!an.some(r => r.errs.length)) msg += `<br>🎉 모든 빈칸을 채웠어요! [✨ 완성!]을 눌러 봐요.`;
+  else msg += `<br>모든 빈칸을 채웠어요. ⚠ 칸을 눌러 고쳐 봐요.`;
+  setMsg(msg, an[bi].errs.length);
+  renderMake();
+}
+function afterChange() { S.completed = false; save(); }
+function undo() {
+  const h = history_.pop(); if (!h) return;
+  S.fills[h.bi] = h.prev; afterChange(); sel = h.bi;
+  setMsg(`↩ 빈칸 ${h.bi + 1}번을 되돌렸어요.`); renderMake();
+}
+function clearCell() {
+  if (sel == null || S.fills[sel] == null) return;
+  history_.push({ bi: sel, prev: S.fills[sel] });
+  S.fills[sel] = null; afterChange();
+  setMsg(`빈칸 ${sel + 1}번을 지웠어요. 다시 율명을 골라요.`); renderMake();
+}
+function resetAll() {
+  confirmBox("빈칸을 모두 비울까요?<br><span class='note'>채운 율명만 지워지고, 퀴즈와 메달은 그대로예요.</span>", () => {
+    stopPlayback(); S.fills = BLANKS.map(() => null); history_ = []; sel = 0; afterChange();
+    setMsg("빈칸을 모두 비웠어요. 빈칸 1번을 골랐어요."); renderMake();
+  });
+}
+function doneCheck() {
+  const an = analyze(S.fills);
+  const left = BLANKS.map((g, bi) => bi).filter(bi => S.fills[bi] == null);
+  const bad = an.filter(r => r.errs.length).map(r => r.bi);
+  if (left.length || bad.length) {
+    const targets = left.concat(bad);
+    sel = targets[0]; renderMake();
+    setMsg(`아직이에요! □ 빈칸 ${left.length}개, ⚠ 고칠 칸 ${bad.length}개가 있어요.<br>깜빡이는 칸을 확인해 봐요.`, true);
+    targets.forEach(bi => { const el = $("makeScore").querySelector(`.cell[data-bi="${bi}"]`); if (el) el.classList.add("blink"); });
+    return;
+  }
+  S.completed = true; save(); sel = null; renderMake();
+  award(1);
+  setMsg(`🎉 규칙을 모두 지켰어요! 내 가락을 들어 봐요.<br><button class="b-red" id="goShare" style="margin-top:6px">🏮 저장하고 갤러리에 올리기 ▶</button>`);
+  $("goShare").onclick = () => go("share");
+  playMake("mine");
+}
+function playMake(kind) {
+  if (session && session.kind === kind) { stopPlayback(); return; }
+  let cells;
+  if (kind === "orig") { cells = ORIG_CELLS; S.counts.orig++; }
+  else {
+    cells = mineCells(S.fills); S.counts.mine++;
+    const left = S.fills.filter(v => v == null).length;
+    if (left) toast(`아직 빈칸이 ${left}개 있어요. 빈칸은 쉬고 지나가요.`);
+  }
+  save();
+  startPlayback({ cells, g0: PART_START, g1: BASE_CELLS.length, kind, targets: [$("makeScore")], drum: S.drum });
+}
+function openFullScore() {
+  stopPlayback();
+  $("modalRoot").innerHTML = `<div class="modal-bg"><div class="modal wide" role="dialog" aria-modal="true">
+    <div class="hyeonpan" style="margin-top:0"><h2>도라지타령 전체 악보</h2></div>
+    <p class="note" style="margin:0 0 8px">오른쪽 줄부터 위에서 아래로 읽어요. 맨 왼쪽 줄이 내가 바꾸는 부분이에요.</p>
+    <div class="row" style="margin:0 0 8px;justify-content:center">
+      <button class="b-navy" data-kind="fullorig">▶ 원곡 처음부터</button>
+      <button class="b-teal" data-kind="fullmine">▶ 내 가락 넣어 처음부터</button>
+    </div>
+    <div id="fullScore" style="overflow-x:auto"></div>
+    <div class="row"><button class="b-gold" id="fullClose">닫기</button></div></div></div>`;
+  renderScore($("fullScore"), { g0: 0, g1: BASE_CELLS.length, fills: S.fills, analysis: analyze(S.fills), showBlanks: true });
+  $("modalRoot").querySelectorAll("button[data-kind]").forEach(b => b.onclick = () => {
+    const k = b.dataset.kind;
+    if (session && session.kind === k) { stopPlayback(); return; }
+    if (k === "fullorig") S.counts.orig++; else S.counts.mine++;
+    save();
+    startPlayback({ cells: k === "fullorig" ? ORIG_CELLS : mineCells(S.fills), g0: 0, g1: BASE_CELLS.length, kind: k, targets: [$("fullScore")], drum: S.drum });
+  });
+  $("fullClose").onclick = () => { stopPlayback(); closeModal(); };
+  refreshPlayButtons();
+}
+const PLAY_LABEL = { orig: "▶ 원곡 듣기", mine: "▶ 내 가락 듣기", my: "▶ 내 가락 듣기", myorig: "▶ 원곡 듣기", fullorig: "▶ 원곡 처음부터", fullmine: "▶ 내 가락 넣어 처음부터", detail: "▶ 이 가락 듣기", detailorig: "▶ 원곡 듣기" };
+function refreshPlayButtons() {
+  document.querySelectorAll("button[data-kind]").forEach(b => {
+    const on = session && session.kind === b.dataset.kind;
+    b.classList.toggle("playing", !!on);
+    b.textContent = on ? "■ 멈춤" : PLAY_LABEL[b.dataset.kind];
+  });
+  document.querySelectorAll(".gplay").forEach(b => {
+    const on = session && session.kind === "g:" + b.dataset.id;
+    b.classList.toggle("playing", !!on);
+    b.textContent = on ? "■ 멈춤" : "▶ 듣기";
+  });
+}
+
+/* ---------- 작품 데이터 (링크·갤러리 공통) ---------- */
+function b64e(str) { const bytes = new TextEncoder().encode(str); let bin = ""; bytes.forEach(b => bin += String.fromCharCode(b)); return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
+function b64d(s) { s = s.replace(/-/g, "+").replace(/_/g, "/"); while (s.length % 4) s += "="; const bin = atob(s); return new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0))); }
+function myWorkObj() { return { v: 1, t: S.title, f: S.feel, n: S.num, m: S.fills.map(v => v == null ? "x" : v).join(""), o: S.counts.orig, y: S.counts.mine }; }
+function sanitizeWork(o) {
+  try {
+    if (!o || o.v !== 1 || typeof o.t !== "string" || typeof o.f !== "string" || typeof o.m !== "string") return null;
+    if (o.m.length !== BLANKS.length || !/^[0-6x]+$/.test(o.m)) return null;
+    return { v: 1, t: o.t.slice(0, 20), f: o.f.slice(0, 40), n: String(o.n || "").replace(/\D/g, "").slice(0, 2), m: o.m,
+             o: Math.max(0, Math.min(9999, +o.o || 0)), y: Math.max(0, Math.min(9999, +o.y || 0)), ts: +o.ts || 0 };
+  } catch (e) { return null; }
+}
+function fillsOf(w) { return w.m.split("").map(c => c === "x" ? null : Number(c)); }
+function decodeLink(input) {
+  try {
+    let s = String(input || "").trim();
+    const i = s.indexOf("#s="); if (i >= 0) s = s.slice(i + 3);
+    s = s.replace(/\s/g, "");
+    if (!s || !/^[A-Za-z0-9_-]+$/.test(s)) return null;
+    return sanitizeWork(JSON.parse(b64d(s)));
+  } catch (e) { return null; }
+}
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function workChip(fills) {
+  const left = fills.filter(v => v == null).length, bad = analyze(fills).filter(r => r.errs.length).length;
+  if (!left && !bad) return `<span class="chip">✔ 규칙을 모두 지켰어요</span>`;
+  return `<span class="chip">${left ? `□ 빈칸 ${left}개 ` : ""}${bad ? `⚠ 고칠 칸 ${bad}개` : ""}</span>`;
+}
+
+/* ---------- 함께 쓰는 갤러리 저장소 (claude.ai에서 공유받아 열었을 때만) ---------- */
+let DB = null, USER = null, UID = null, IS_OWNER = false, CAN_WRITE = true;
+let SHARED = [], HEARTS = [], sharedReady = false, sharedNote = "";
+async function initShared() {
+  try {
+    if (!window.claude || typeof window.claude.use !== "function") return;
+    const [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+    if (!db) return;
+    DB = db; USER = user;
+    if (user) {
+      try { UID = await user.id(); } catch (e) {}
+      try { IS_OWNER = !!user.isOwner(); } catch (e) {}
+      try { const c = await user.can("data.write"); if (c === false) CAN_WRITE = false; } catch (e) {}
+    }
+    const timer = setTimeout(() => { if (!sharedReady) { sharedNote = "갤러리를 아직 불러오지 못했어요. 잠시 기다려 주세요."; refreshGalleryViews(); } }, 10000);
+    DB.collection("gallery").onSnapshot(snap => {
+      clearTimeout(timer);
+      if (!snap.metadata.fromCache) sharedNote = "";
+      sharedReady = true;
+      SHARED = snap.docs.map(d => { const w = sanitizeWork(d.data()); return w ? Object.assign(w, { id: d.id, shared: true }) : null; }).filter(Boolean);
+      refreshGalleryViews();
+    }, () => { clearTimeout(timer); sharedNote = "갤러리 연결이 끊겼어요. 페이지를 다시 열어 주세요."; refreshGalleryViews(); });
+    DB.collection("hearts").onSnapshot(snap => {
+      HEARTS = snap.docs.map(d => ({ id: d.id, liked: (d.data() && typeof d.data().liked === "object") ? d.data().liked : {} }));
+      refreshGalleryViews();
+    }, () => {});
+    refreshGalleryViews();
+  } catch (e) { DB = null; }
+}
+function sharedMode() { return !!DB; }
+function galleryWorks() {
+  if (sharedMode()) return SHARED.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  return LOCAL_GALLERY.map((w, i) => Object.assign({}, w, { id: "L" + i }));
+}
+function heartCount(id) { return HEARTS.filter(h => h.liked[id] === true).length; }
+function myHearts() { const h = HEARTS.find(x => x.id === UID); return h ? h.liked : {}; }
+let heartBusy = false;
+async function toggleHeart(id) {
+  if (!sharedMode() || !UID || heartBusy) { if (!sharedMode()) toast("❤ 칭찬은 함께 쓰는 갤러리에서만 눌러요"); return; }
+  heartBusy = true;
+  const liked = Object.assign({}, myHearts());
+  liked[id] = !liked[id];
+  try { await DB.collection("hearts").doc(UID).set({ liked }); }
+  catch (e) { toast("칭찬을 저장하지 못했어요"); }
+  heartBusy = false;
+}
+function refreshGalleryViews() {
+  if (current === "gallery") renderGallery();
+  if (current === "home") renderHome();
+  if (current === "share") renderUploadUI();
+}
+
+/* ---------- 저장하고 올리기 ---------- */
+function renderShare() {
+  $("inTitle").value = S.title; $("inFeel").value = S.feel; $("inNum").value = S.num;
+  renderMyMeta();
+  renderScore($("myScore"), { g0: PART_START, g1: BASE_CELLS.length, fills: S.fills, analysis: analyze(S.fills), big: true, showBlanks: true, per: 1, colLabels: true });
+  renderUploadUI();
+  refreshPlayButtons();
+}
+function renderUploadUI() {
+  $("btnUpload").textContent = sharedMode() ? (S.uploaded ? "🏮 갤러리 작품 새로 고치기" : "🏮 우리 반 갤러리에 올리기") : "🔗 작품 링크 만들기";
+  if (!sharedMode()) $("uploadMsg").textContent = "";
+  if (S.link) { $("linkOut").value = S.link; $("linkArea").classList.remove("hidden"); }
+}
+function renderMyMeta() {
+  $("myTitle").textContent = S.title || "내 작품";
+  $("myMeta").innerHTML = `${S.num ? esc(S.num) + "번 · " : ""}${esc(S.feel || "느낌 한 줄을 써 주세요")}<div class="note">원곡 듣기 ${S.counts.orig}번 · 내 가락 듣기 ${S.counts.mine}번</div>`;
+  $("myWarn").innerHTML = workChip(S.fills) + (workIsValid(S.fills) ? "" : ` <span class="note">빈칸이 있어도 올릴 수 있어요.</span>`);
+}
+let uploading = false;
+async function upload() {
+  const t = $("inTitle").value.trim(), f = $("inFeel").value.trim(), n = $("inNum").value.replace(/\D/g, "").slice(0, 2);
+  $("inNum").value = n;
+  if (!t) { $("shareErr").textContent = "제목을 써 주세요"; $("inTitle").focus(); return; }
+  if (!f) { $("shareErr").textContent = "느낌 한 줄을 써 주세요"; $("inFeel").focus(); return; }
+  $("shareErr").textContent = "";
+  S.title = t; S.feel = f; S.num = n;
+  S.link = location.href.split("#")[0] + "#s=" + b64e(JSON.stringify(myWorkObj()));
+  save(); renderMyMeta();
+  if (sharedMode() && UID && CAN_WRITE) {
+    if (uploading) return;
+    uploading = true; $("btnUpload").disabled = true; $("uploadMsg").textContent = "올리는 중…";
+    try {
+      await DB.collection("gallery").doc(UID).set(Object.assign(myWorkObj(), { ts: Date.now() }));
+      S.uploaded = true; save();
+      $("uploadMsg").innerHTML = `✔ 우리 반 갤러리에 올렸어요! <button class="b-navy" id="goGallery" style="margin-left:6px">갤러리 보기 ▶</button>`;
+      $("goGallery").onclick = () => go("gallery");
+      $("linkOut").value = S.link; $("linkArea").classList.remove("hidden");
+      award(2);
+    } catch (e) {
+      $("uploadMsg").textContent = "";
+      $("shareErr").textContent = (e && e.code === "quota_exceeded") ? "갤러리가 가득 찼어요. 선생님께 알려 주세요." : "갤러리에 올릴 수 없어요. 아래 링크를 선생님께 보내 주세요.";
+      $("linkOut").value = S.link; $("linkArea").classList.remove("hidden");
+    }
+    uploading = false; $("btnUpload").disabled = false; renderUploadUI();
+    return;
+  }
+  // 함께 쓰는 저장소가 없을 때: 링크로 선생님께 보내기
+  $("linkOut").value = S.link; $("linkArea").classList.remove("hidden");
+  $("copyMsg").textContent = "링크를 만들었어요. 위의 [📌 링크 복사하고 패들렛 열기]를 눌러요.";
+  award(2);
+}
+function copyLink() {
+  const box = $("linkOut");
+  const fallback = () => { box.focus(); box.select(); $("copyMsg").textContent = "자동 복사가 안 돼요. 글상자를 길게 눌러 복사해요."; };
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(box.value).then(() => { $("copyMsg").textContent = "✔ 링크를 복사했어요!"; }, fallback);
+    else fallback();
+  } catch (e) { fallback(); }
+}
+
+function setupPadlet() {
+  const url = String(CONFIG.PADLET_URL || "").trim();
+  const ok = /^https:\/\//.test(url);
+  ["padletLink", "padletLinkT"].forEach(id => { const a = $(id); if (!a) return; if (ok) a.href = url; else a.classList.add("hidden"); });
+  if (!ok) $("padletBox").classList.add("hidden");
+  // 누르면 링크를 먼저 복사하고, 패들렛은 새 창에서 열림
+  $("padletLink").addEventListener("click", () => {
+    const v = $("linkOut").value;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(v).then(
+        () => { $("copyMsg").textContent = "✔ 링크를 복사했어요! 패들렛에서 붙여 넣어요."; },
+        () => { $("copyMsg").textContent = "자동 복사가 안 됐어요. 아래 글상자를 길게 눌러 복사해서 패들렛에 붙여 넣어요."; });
+      else $("copyMsg").textContent = "아래 글상자를 길게 눌러 복사해서 패들렛에 붙여 넣어요.";
+    } catch (e) {}
+  });
+}
+
+/* ---------- 우리 반 갤러리 ---------- */
+function renderGallery() {
+  const works = galleryWorks();
+  if (sharedMode()) {
+    $("gMode").textContent = "🏮 실시간 갤러리";
+    $("gHelp").textContent = sharedNote || "친구들이 [저장하고 올리기]에서 올린 작품이 바로 나타나요. 카드를 눌러 크게 보고, ❤로 칭찬해요.";
+  } else {
+    $("gMode").textContent = "📥 이 기기에 모은 갤러리";
+    $("gHelp").textContent = "선생님이 학생 링크를 모아 아래에 붙여 넣으면, 반 전체 작품이 이 화면에 모여요.";
+  }
+  $("gCount").textContent = `작품 ${works.length}개`;
+  $("tPasteBox").classList.toggle("hidden", sharedMode() && !IS_OWNER);
+  if (!works.length) {
+    $("gGrid").innerHTML = `<div class="empty" style="grid-column:1/-1">${mascotSVG(80)}<br>아직 올라온 작품이 없어요.<br>${sharedMode() ? "가장 먼저 올려 볼까요?" : "선생님이 링크를 모으면 여기에 나타나요."}</div>`;
+    return;
+  }
+  const mine = myHearts();
+  $("gGrid").innerHTML = works.map((w, i) => {
+    const fills = fillsOf(w);
+    const isMine = sharedMode() && w.id === UID;
+    const canDel = (sharedMode() && IS_OWNER) || !sharedMode();
+    return `<div class="gcard${isMine ? " mine" : ""}" id="gc-${esc(w.id)}" style="--c:${CARD_COLORS[i % CARD_COLORS.length]}">
+      ${isMine ? `<span class="chip">⭐ 내 작품</span>` : ""}
+      <div class="t">${w.n ? esc(w.n) + "번 · " : ""}${esc(w.t)}</div>
+      <div class="f">${esc(w.f)}</div>
+      <div class="notes">${fills.map(v => v == null ? "□" : YUL[v].h).join(" ")}</div>
+      <div class="meta">${workIsValid(fills) ? "✔ 규칙을 모두 지킴" : "□·⚠ 아직 덜 완성"} · 원곡 ${w.o}번 · 내 가락 ${w.y}번 들음</div>
+      <div class="row">
+        <button class="gplay b-teal" data-id="${esc(w.id)}">▶ 듣기</button>
+        <button class="gopen" data-id="${esc(w.id)}">🔍 크게</button>
+        ${sharedMode() ? `<button class="heart${mine[w.id] ? " on" : ""}" data-id="${esc(w.id)}" aria-pressed="${mine[w.id] ? "true" : "false"}">${mine[w.id] ? "❤" : "♡"} ${heartCount(w.id)}</button>` : ""}
+        ${canDel ? `<button class="gdel b-line" data-id="${esc(w.id)}" aria-label="내리기">🗑</button>` : ""}
+      </div></div>`;
+  }).join("");
+  const byId = (id) => works.find(w => w.id === id);
+  $("gGrid").querySelectorAll(".gplay").forEach(b => b.onclick = () => gPlay(byId(b.dataset.id)));
+  $("gGrid").querySelectorAll(".gopen").forEach(b => b.onclick = () => openDetail(byId(b.dataset.id)));
+  $("gGrid").querySelectorAll(".heart").forEach(b => b.onclick = () => toggleHeart(b.dataset.id));
+  $("gGrid").querySelectorAll(".gdel").forEach(b => b.onclick = () => confirmBox("이 작품을 갤러리에서 내릴까요?", async () => {
+    const id = b.dataset.id;
+    if (sharedMode()) { try { await DB.doc("gallery/" + id).delete(); } catch (e) { toast("내리지 못했어요"); } }
+    else { LOCAL_GALLERY.splice(+id.slice(1), 1); saveG(); renderGallery(); }
+  }));
+  refreshPlayButtons();
+}
+function gPlay(w) {
+  if (!w) return;
+  const kind = "g:" + w.id;
+  if (session && session.kind === kind) { stopPlayback(); return; }
+  document.querySelectorAll(".gcard.picked").forEach(c => c.classList.remove("picked"));
+  const card = document.getElementById("gc-" + w.id); if (card) { card.classList.add("picked"); if (card.scrollIntoView) card.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
+  startPlayback({ cells: mineCells(fillsOf(w)), g0: PART_START, g1: BASE_CELLS.length, kind, targets: [], drum: S.drum,
+    onEnd: () => { if (card) card.classList.remove("picked"); } });
+}
+function openDetail(w, extra) {
+  if (!w) return;
+  stopPlayback();
+  const fills = fillsOf(w);
+  $("modalRoot").innerHTML = `<div class="modal-bg"><div class="modal wide" role="dialog" aria-modal="true" style="text-align:left">
+    <div class="wtitle">${w.n ? esc(w.n) + "번 · " : ""}${esc(w.t)}</div>
+    <div style="font-size:19px">${esc(w.f)}</div>
+    <div style="margin:6px 0">${workChip(fills)}</div>
+    <div class="row" style="margin:6px 0 10px">
+      <button class="b-teal" data-kind="detail">▶ 이 가락 듣기</button>
+      <button class="b-navy" data-kind="detailorig">▶ 원곡 듣기</button>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;justify-content:center">
+      <div id="detailScore" style="flex:0 0 auto"></div>
+      <div class="evalcard" style="flex:1 1 220px">
+        <b style="font-size:20px">⭐ 짝 평가 (말로 이야기해요)</b>
+        <label><input type="checkbox"> 규칙을 지켰나요?</label>
+        <label><input type="checkbox"> 가락이 자연스럽게 이어지나요?</label>
+        <label><input type="checkbox"> 느낌 문장과 가락이 어울리나요?</label>
+        <p class="note">체크한 내용은 저장되지 않아요.</p>
+      </div>
+    </div>
+    <div class="row">${extra || ""}<button class="b-gold" id="detailClose">닫기</button></div></div></div>`;
+  renderScore($("detailScore"), { g0: PART_START, g1: BASE_CELLS.length, fills, analysis: analyze(fills), big: true, showBlanks: true, per: 1, colLabels: true });
+  $("modalRoot").querySelectorAll("button[data-kind]").forEach(b => b.onclick = () => {
+    const k = b.dataset.kind;
+    if (session && session.kind === k) { stopPlayback(); return; }
+    startPlayback({ cells: k === "detail" ? mineCells(fills) : ORIG_CELLS, g0: PART_START, g1: BASE_CELLS.length, kind: k, targets: [$("detailScore")], drum: S.drum });
+  });
+  $("detailClose").onclick = () => { stopPlayback(); closeModal(); };
+  refreshPlayButtons();
+}
+function addLinksToLocal() {
+  const lines = $("tInput").value.split("\n").map(s => s.trim()).filter(Boolean);
+  if (!lines.length) { $("tAddMsg").textContent = "붙여 넣은 링크가 없어요."; return; }
+  let ok = 0, bad = 0, dup = 0;
+  lines.forEach(l => {
+    const w = decodeLink(l);
+    if (!w) { bad++; return; }
+    if (LOCAL_GALLERY.some(x => x.m === w.m && x.t === w.t && x.n === w.n)) { dup++; return; }
+    LOCAL_GALLERY.push(w); ok++;
+  });
+  saveG();
+  $("tAddMsg").textContent = `작품 ${ok}개를 추가했어요.` + (dup ? ` (이미 있는 작품 ${dup}개)` : "") + (bad ? ` (읽을 수 없는 링크 ${bad}개)` : "");
+  if (ok) $("tInput").value = "";
+  renderGallery();
+}
+
+/* ---------- 교사 설정 ---------- */
+function renderTeacher() {
+  $("tTempoNow").textContent = "지금: " + (T.tempo === "slow" ? "느리게" : "보통");
+  $("tNextRule").textContent = T.nextRule ? "켜짐 (누르면 꺼짐)" : "꺼짐 (누르면 켜짐)";
+  $("tEndRule").textContent = T.endRule ? "켜짐 (누르면 꺼짐)" : "꺼짐 (누르면 켜짐)";
+}
+
+/* ---------- 인쇄 ---------- */
+function doPrint(mine) {
+  const pa = $("printArea");
+  pa.innerHTML = `<h2>나만의 도라지타령 만들기 ${mine ? "– 내 작품" : "– 활동지"}</h2>
+    <p>${mine ? `제목: ${esc(S.title || "")}　느낌: ${esc(S.feel || "")}` : "번호: ____　제목: ______________________"}</p>
+    <p>규칙 1. 율명 7개만 써요(仲 林 無 潢 汰 㳞 淋)　규칙 2. 한 칸에 율명 하나　규칙 3. 앞 음과 같은 음이나 바로 위·아래 음으로만 움직여요</p>
+    <div id="printScore"></div><p style="font-size:12px">${esc(CONFIG.SOURCE_TEXT)}</p>`;
+  if (mine) renderScore($("printScore"), { g0: PART_START, g1: BASE_CELLS.length, fills: S.fills, big: true, showBlanks: true, per: 1, colLabels: true });
+  else renderScore($("printScore"), { g0: 0, g1: BASE_CELLS.length, fills: BLANKS.map(() => null), showBlanks: true });
+  document.body.classList.add("printing");
+  $("printNote").textContent = "인쇄 창이 뜨지 않으면, 이 파일을 브라우저에서 직접 열어 인쇄해요.";
+  try { window.print(); } catch (e) {}
+  setTimeout(() => document.body.classList.remove("printing"), 500);
+}
+
+/* ---------- 연결 ---------- */
+function route() {
+  const h = location.hash || "";
+  if (h.startsWith("#s=")) {
+    const w = decodeLink(h);
+    show("gallery");
+    if (!w) { toast("링크가 잘못되었어요. 친구에게 다시 받아요."); return; }
+    const addBtn = sharedMode() ? "" : `<button class="b-navy" id="detailAdd">📥 이 기기 갤러리에 추가</button>`;
+    openDetail(Object.assign({ id: "link" }, w), addBtn);
+    const a = $("detailAdd");
+    if (a) a.onclick = () => {
+      if (!LOCAL_GALLERY.some(x => x.m === w.m && x.t === w.t && x.n === w.n)) { LOCAL_GALLERY.push(w); saveG(); }
+      closeModal(); renderGallery(); toast("갤러리에 추가했어요");
+    };
+    return;
+  }
+  if (h === "#teacher") { show("teacher"); return; }
+}
+function init() {
+  $("sourceText").textContent = CONFIG.SOURCE_TEXT;
+  document.querySelectorAll("[data-mascot]").forEach(el => el.innerHTML = mascotSVG(+el.dataset.mascot));
+  document.querySelectorAll("[data-icon]").forEach(el => el.innerHTML = iconSVG(el.dataset.icon, +(el.dataset.size || 60)));
+  load(); renderMedals(); renderStairs();
+  if (!DATA_OK) { document.querySelectorAll("button").forEach(b => b.disabled = true); show("home"); return; }
+  document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => go(b.dataset.go)));
+  $("btnPlayOrig").onclick = () => playMake("orig");
+  $("btnPlayMine").onclick = () => playMake("mine");
+  $("btnDrum").onclick = () => { stopPlayback(); S.drum = !S.drum; save(); renderMake(); };
+  $("btnTempo").onclick = () => { stopPlayback(); S.tempo = tempo() === "slow" ? "normal" : "slow"; save(); renderMake(); };
+  $("btnFull").onclick = openFullScore;
+  $("btnUndo").onclick = undo;
+  $("btnClear").onclick = clearCell;
+  $("btnReset").onclick = resetAll;
+  $("btnFullReset").onclick = () => confirmBox("처음으로 다시 할까요?<br><span class='note'>퀴즈 단계, 만든 가락, 제목·느낌, 메달이 모두 지워져요.</span>", fullReset);
+  $("btnDone").onclick = doneCheck;
+  $("btnUpload").onclick = upload;
+  $("btnCopy").onclick = copyLink;
+  setupPadlet();
+  $("inNum").addEventListener("input", e => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 2); });
+  $("btnPlayMy").onclick = () => {
+    if (session && session.kind === "my") { stopPlayback(); return; }
+    S.counts.mine++; save(); renderMyMeta();
+    startPlayback({ cells: mineCells(S.fills), g0: PART_START, g1: BASE_CELLS.length, kind: "my", targets: [$("myScore")], drum: S.drum });
+  };
+  $("btnPlayMyOrig").onclick = () => {
+    if (session && session.kind === "myorig") { stopPlayback(); return; }
+    S.counts.orig++; save(); renderMyMeta();
+    startPlayback({ cells: ORIG_CELLS, g0: PART_START, g1: BASE_CELLS.length, kind: "myorig", targets: [$("myScore")], drum: S.drum });
+  };
+  $("btnPrintBlank").onclick = () => doPrint(false);
+  $("btnPrintMine").onclick = () => doPrint(true);
+  $("btnGRandom").onclick = () => { const ws = galleryWorks(); if (!ws.length) { toast("아직 작품이 없어요"); return; } gPlay(ws[rnd(ws.length)]); };
+  $("btnGStop").onclick = stopPlayback;
+  $("btnTAdd").onclick = addLinksToLocal;
+  $("btnTClear").onclick = () => confirmBox("이 기기에 모은 갤러리 작품을 모두 지울까요?", () => { LOCAL_GALLERY = []; saveG(); renderGallery(); });
+  $("tTempoSlow").onclick = () => { T.tempo = "slow"; S.tempo = null; saveT(); save(); renderTeacher(); };
+  $("tTempoNormal").onclick = () => { T.tempo = "normal"; S.tempo = null; saveT(); save(); renderTeacher(); };
+  $("tNextRule").onclick = () => { T.nextRule = !T.nextRule; saveT(); renderTeacher(); };
+  $("tEndRule").onclick = () => { T.endRule = !T.endRule; saveT(); renderTeacher(); };
+  $("tWipe").onclick = () => confirmBox("이 기기에 저장된 학생 기록(퀴즈·가락·메달)을 지울까요?", () => {
+    S = defaultState(); history_ = []; sel = 0; quiz = null; save(); renderMedals(); toast("기록을 지웠어요");
+  });
+  window.addEventListener("hashchange", route);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) stopPlayback(); });
+  sel = S.fills.findIndex(v => v == null); if (sel < 0) sel = null;
+  show("home");
+  route();
+  initShared();
+}
+init();
+</script>
+</body>
+</html>
